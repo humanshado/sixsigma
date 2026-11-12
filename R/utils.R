@@ -89,3 +89,13 @@ update_pickers <- function(session, df, spec) {
 }
 
 empty_to_null <- function(x) if (is.null(x) || identical(x, "")) NULL else x
+
+# Show numeric columns that hold only whole numbers without decimals.
+int_cols <- function(df) {
+  if (is.null(df)) return(df)
+  for (i in seq_along(df)) {
+    v <- df[[i]]
+    if (is.numeric(v) && all(is.na(v) | (is.finite(v) & v == round(v) & abs(v) < 1e9))) df[[i]] <- as.integer(v)
+  }
+  df
+}
