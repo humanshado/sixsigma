@@ -81,7 +81,9 @@ update_pickers <- function(session, df, spec) {
     s <- spec[[id]]
     choices <- if (identical(s$type, "numeric")) nums else all
     if (isTRUE(s$optional)) choices <- c("(none)" = "", choices)
-    sel <- s$default
+    # Keep what the user picked if that column still exists (e.g. after a cell edit).
+    prev <- shiny::isolate(session$input[[id]])
+    sel <- if (!is.null(prev) && length(prev) == 1 && prev %in% choices) prev else s$default
     if (is.numeric(sel)) sel <- choices[min(sel, length(choices))]
     if (is.null(sel) || !(sel %in% choices)) sel <- if (isTRUE(s$optional)) "" else choices[1]
     shiny::updateSelectInput(session, id, choices = choices, selected = sel)
@@ -98,4 +100,10 @@ int_cols <- function(df) {
     if (is.numeric(v) && all(is.na(v) | (is.finite(v) & v == round(v) & abs(v) < 1e9))) df[[i]] <- as.integer(v)
   }
   df
+}
+
+# Keep a multi-select's current choices that still exist, else use the default.
+keep_selected <- function(session, id, choices, default) {
+  prev <- intersect(shiny::isolate(session$input[[id]]), choices)
+  if (length(prev)) prev else default
 }

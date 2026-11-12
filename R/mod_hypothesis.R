@@ -90,7 +90,8 @@ hypothesisServer <- function(id, data) {
         cat1 = list(type = "any", default = if (length(cats)) cats[1] else 1),
         cat2 = list(type = "any", default = if (length(cats) > 1) cats[2] else 2)
       ))
-      shiny::updateSelectInput(session, "cols", choices = nums, selected = utils::head(nums, 2))
+      shiny::updateSelectInput(session, "cols", choices = nums,
+                              selected = keep_selected(session, "cols", nums, utils::head(nums, 2)))
     })
 
     samples <- function(max_groups = Inf) {

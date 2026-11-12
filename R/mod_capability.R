@@ -55,7 +55,7 @@ capabilityServer <- function(id, data) {
         lt = list(type = "numeric", optional = TRUE)
       ))
       # Suggest spec limits for the sample capability dataset from the book.
-      if (identical(names(data()), "Volume")) {
+      if (identical(names(data()), "Volume") && is.na(num_or_na(input$lsl)) && is.na(num_or_na(input$usl))) {
         shiny::updateNumericInput(session, "lsl", value = 740)
         shiny::updateNumericInput(session, "usl", value = 760)
         shiny::updateNumericInput(session, "target", value = 750)

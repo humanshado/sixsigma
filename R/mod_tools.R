@@ -30,7 +30,7 @@ lfaServer <- function(id, data) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observeEvent(data(), {
       update_pickers(session, data(), list(var = list(type = "numeric", default = 1)))
-      if (identical(names(data()), "diameter")) {
+      if (identical(names(data()), "diameter") && is.na(num_or_na(input$delta))) {
         shiny::updateNumericInput(session, "target", value = 10)
         shiny::updateNumericInput(session, "delta", value = 0.5)
         shiny::updateNumericInput(session, "l0", value = 0.001)

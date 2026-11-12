@@ -11,9 +11,12 @@ so you can run Six Sigma analyses **without writing any R code**.
 
 | Menu | Analysis |
 |---|---|
-| **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; browse and export the worksheet |
+| **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; edit cells, add columns, and export the worksheet |
 | **Stat → Basic statistics** | Descriptive statistics (optionally by group), histogram with normal fit, normal probability plot, Anderson-Darling and Shapiro-Wilk tests, confidence interval for the mean |
 | **Stat → Hypothesis tests** | 1-sample, 2-sample (Welch or pooled) and paired t-tests; one-way ANOVA with Tukey comparisons; equal variances (F/Bartlett and Levene); Mann-Whitney and Kruskal-Wallis; 1-proportion (exact) and 2-proportion tests; chi-square test of association. Each shows the hypotheses, a plain-language conclusion and a chart |
+| **Stat → Regression** | Simple, quadratic/cubic and multiple linear regression (numeric and categorical predictors, optional interactions): equation, coefficients with VIF, R-sq/adjusted/predicted R-sq, ANOVA, fitted line plot with confidence and prediction bands, four-in-one residual plots, unusual observations, and predictions for new settings |
+| **DOE → Create factorial design** | Two-level full and fractional factorial designs for 2 to 8 factors using standard minimum-aberration generators; replicates, center points, randomized run order; resolution, defining relation and alias structure. The design opens in the worksheet, ready for you to type in results |
+| **DOE → Analyze factorial design** | Effects and coefficients, Pareto and normal plots of standardized effects, main effects and interaction plots, curvature test from center points, residual plots. Unreplicated designs use Lenth's method; aliased terms are detected and reported |
 | **Quality Tools → Capability analysis** | Cp, Cpk (with confidence intervals), Z score, expected and observed PPM, and the full SixSigma capability study report |
 | **Quality Tools → Control charts** | I-MR, Xbar-R, Xbar-S, P, NP, C and U charts; subgroups by size or column; variable sample sizes; limits from the first N points (Phase I/II); run-rule signals |
 | **Quality Tools → Gage R&R** | Crossed or nested studies with variance components, % study variation, number of distinct categories, ANOVA and the six-panel report |
@@ -27,8 +30,12 @@ Every chart can be downloaded as a PNG image.
 | Control charts | Gage R&R |
 |---|---|
 | ![Control charts](docs/screenshots/control-charts.png) | ![Gage R&R](docs/screenshots/gage-rr.png) |
-| **Hypothesis tests** | **Pareto chart** |
-| ![One-way ANOVA](docs/screenshots/hypothesis-anova.png) | ![Pareto chart](docs/screenshots/pareto.png) |
+| **Regression** | **Create factorial design** |
+| ![Regression](docs/screenshots/regression.png) | ![Create factorial design](docs/screenshots/doe-create.png) |
+| **Analyze factorial design** | **Hypothesis tests** |
+| ![Analyze factorial design](docs/screenshots/doe-analyze.png) | ![One-way ANOVA](docs/screenshots/hypothesis-anova.png) |
+| **Pareto chart** | |
+| ![Pareto chart](docs/screenshots/pareto.png) | |
 
 ## Running it
 
@@ -60,10 +67,14 @@ R/mod_capability.R  Capability analysis
 R/mod_control.R     Control charts (user interface)
 R/spc.R             Control chart calculations and run rules
 R/mod_gage.R        Gage R&R
+R/mod_regression.R  Regression (user interface)
+R/regression.R      Regression calculations and plots
+R/mod_doe.R         DOE: create and analyze designs (user interface)
+R/doe.R             Design generation, alias structure, effects analysis
 R/mod_pareto.R      Pareto chart
 R/mod_tools.R       Loss function, cause-and-effect diagram, yield
 R/utils.R           Shared helpers
-tests/testthat/     Unit tests for control charts, hypothesis tests and Pareto
+tests/testthat/     Unit tests for every calculation module
 ```
 
 ## How the analyses are computed
@@ -72,6 +83,12 @@ Hypothesis tests use R's standard `stats` functions (`t.test`, `aov`,
 `TukeyHSD`, `var.test`, `bartlett.test`, `wilcox.test`, `kruskal.test`,
 `binom.test`, `prop.test`, `fisher.test`, `chisq.test`); Levene's test is the
 Brown-Forsythe form (ANOVA on absolute deviations from group medians).
+
+Regression uses `lm`; predicted R-sq comes from the PRESS statistic. Factorial
+designs use the standard generators from Box, Hunter & Hunter and Montgomery
+(the tests check that every design is balanced and orthogonal), and the effects
+analysis reproduces Montgomery's unreplicated 2^4 filtration-rate example,
+including Lenth's pseudo standard error.
 
 Capability, Gage R&R, loss function, cause-and-effect, yield and confidence
 intervals call the SixSigma package directly, so the results are the
