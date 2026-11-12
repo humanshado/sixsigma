@@ -2,6 +2,10 @@
 # Run with:  Rscript -e 'shiny::runApp(".", launch.browser = TRUE)'
 # Files in R/ are loaded automatically by Shiny.
 
+# Check package versions first, so an outdated package gives a clear message.
+if (!exists("check_requirements")) source(file.path("R", "requirements.R"))
+check_requirements()
+
 library(shiny)
 library(bslib)
 library(ggplot2)

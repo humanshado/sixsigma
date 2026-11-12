@@ -40,7 +40,9 @@ Every chart can be downloaded as a PNG image.
 ## Running it
 
 1. Install [R](https://cran.r-project.org/) (version 4.1 or later).
-2. Install the required packages (once):
+2. Install the required packages (once, and again after updating the app). The
+   script also upgrades packages that are too old, such as bslib versions
+   before 0.5:
 
    ```bash
    Rscript install.R
@@ -54,6 +56,9 @@ Every chart can be downloaded as a PNG image.
 
    It opens in your web browser. In RStudio you can instead open `app.R` and
    click **Run App**.
+
+   If the app reports that packages are outdated, close any running R or
+   RStudio sessions, run `Rscript install.R` again, and restart.
 
 ## Project layout
 
