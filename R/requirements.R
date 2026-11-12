@@ -1,20 +1,26 @@
-# Minimum package versions Six Sigma Studio needs.
-# bslib 0.5.0 introduced page_navbar(), nav_panel(), card() and the sidebar
-# layouts used throughout the app; ggplot2 3.4.0 introduced `linewidth`.
+# Minimum package versions Six Sigma Studio needs. Each minimum is the oldest
+# version that has every function the app uses; newer versions are fine.
+#   shiny 1.7.0      markdown(), modules and the inputs used
+#   bslib 0.5.0      page_navbar(), nav_panel(), card(), layout_sidebar(), nav_select()
+#   htmltools 0.5.2  tagQuery()
+#   DT 0.6           editable cells with disabled columns
+#   ggplot2 3.4.0    the `linewidth` aesthetic
+#   SixSigma 0.10.0  ss.rr() with print_plot and signifstars
+# The other packages have had the functions used for many years.
 
 r_min_version <- "4.1.0"
 
 required_packages <- c(
-  shiny     = "1.7.5",
-  bslib     = "0.5.1",
-  htmltools = "0.5.6",
-  DT        = "0.28",
+  shiny     = "1.7.0",
+  bslib     = "0.5.0",
+  htmltools = "0.5.2",
+  DT        = "0.6",
   ggplot2   = "3.4.0",
-  scales    = "1.2.0",
-  SixSigma  = "0.11.1",
+  scales    = "1.0.0",
+  SixSigma  = "0.10.0",
   nortest   = "1.0-4",
-  e1071     = "1.7-9",
-  readxl    = "1.4.0",
+  e1071     = "1.6",
+  readxl    = "1.0.0",
   testthat  = "3.0.0"
 )
 
