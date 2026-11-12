@@ -31,3 +31,16 @@ if (!nrow(todo)) {
   }
   cat("Done. All required packages are installed and up to date.\n")
 }
+
+# Shiny's event loop (later) and Rcpp must work together; a mismatch only
+# shows up when they are loaded, so try it once here.
+loop_ok <- tryCatch({ later::later(function() NULL, 0); later::run_now(); TRUE },
+                    error = function(e) { message("\n", conditionMessage(e)); FALSE })
+if (!loop_ok) {
+  cat("\nShiny's event loop failed to start, usually because the 'later' and 'Rcpp' packages\n",
+      "do not match. Close all R sessions, then run in a terminal:\n",
+      "  Rscript -e 'install.packages(c(\"Rcpp\", \"later\", \"httpuv\", \"promises\"), ",
+      "repos = \"https://cloud.r-project.org\")'\n", sep = "")
+  quit(status = 1)
+}
+cat("Shiny's event loop works.\n")

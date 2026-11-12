@@ -6,6 +6,11 @@
 #   DT 0.6           editable cells with disabled columns
 #   ggplot2 3.4.0    the `linewidth` aesthetic
 #   SixSigma 0.10.0  ss.rr() with print_plot and signifstars
+#   Rcpp 1.0.7       later (Shiny's event loop) built against newer Rcpp calls
+#                    Rcpp_precious_remove, which older Rcpp lacks; Shiny then
+#                    fails to start with "function 'Rcpp_precious_remove' not
+#                    provided by package 'Rcpp'"
+#   later 1.3.0      a later release built for current Rcpp
 # The other packages have had the functions used for many years.
 
 r_min_version <- "4.1.0"
@@ -21,6 +26,8 @@ required_packages <- c(
   nortest   = "1.0-4",
   e1071     = "1.6",
   readxl    = "1.0.0",
+  Rcpp      = "1.0.7",
+  later     = "1.3.0",
   testthat  = "3.0.0"
 )
 
