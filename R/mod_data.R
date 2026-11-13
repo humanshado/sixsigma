@@ -13,7 +13,7 @@ dataUI <- function(id) {
       shiny::conditionalPanel(
         "input.source == 'sample'", ns = ns,
         shiny::selectInput(ns("sample"), "Dataset", choices = sample_datasets(), selected = "ss.data.ca"),
-        shiny::helpText("Datasets from the SixSigma package and the book \"Six Sigma with R\".")
+        shiny::helpText("Datasets from the SixSigma package (book \"Six Sigma with R\") and the qcr package.")
       ),
       shiny::conditionalPanel(
         "input.source == 'upload'", ns = ns,

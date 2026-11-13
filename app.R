@@ -37,15 +37,21 @@ and co-authors. No R knowledge is needed to use it.
 | Stat | Regression: simple, polynomial and multiple linear regression with fitted line plot, residual plots, unusual observations and prediction | base R `lm` |
 | DOE | Create 2-level full and fractional factorial designs (up to 8 factors) with replicates, center points, randomization and alias structure | built in |
 | DOE | Analyze factorial designs: effects, Pareto and normal plots of effects, main effects and interaction plots, curvature test, Lenth's method for unreplicated designs | base R `lm` |
-| Quality Tools | Capability analysis (Cp, Cpk, Z, PPM) | `ss.study.ca`, `ss.ca.cp`, `ss.ca.cpk`, `ss.ca.z` |
-| Quality Tools | Control charts: I-MR, Xbar-R, Xbar-S, P, NP, C, U | Shewhart formulas with SixSigma constants |
+| Quality Tools | Capability analysis: Cp/Cpk (within) and Pp/Ppk (overall), Cpm, Cpmk, nonparametric CNp-CNpmk, Vannman capability plot, PPM | `ss.study.ca`, qcr methods |
+| Quality Tools | Non-normal capability: fitted lognormal, Weibull, gamma, exponential, logistic or Box-Cox, percentile indices | MASS, qcr methods |
+| Quality Tools | Control charts: I-MR, Xbar-R, Xbar-S, P, NP, C, U, EWMA, CUSUM | Shewhart formulas with SixSigma constants; qcr methods |
+| Quality Tools | Multivariate control charts: Hotelling T², MEWMA, MCUSUM; nonparametric depth r, Q, S charts | qcr methods |
 | Quality Tools | Gage R&R (crossed or nested) | `ss.rr` |
 | Quality Tools | Taguchi loss function | `ss.lfa` |
 | Quality Tools | Cause-and-effect diagram | `ss.ceDiag` |
 | Quality Tools | Pareto chart with cumulative percentage and 'Other' grouping | ggplot2 |
 | Quality Tools | Process yield (FTY, RTY, DPMO) | `ss.ca.yield` |
 
-Licensed under the GPL (version 2 or later), like the SixSigma package.
+Several methods and example datasets are adapted from the
+[qcr](https://github.com/mflores72000/qcr) package by Miguel Flores, Rubén
+Fernández-Casal, Salvador Naya and Javier Tarrío-Saavedra.
+
+Licensed under the GPL (version 2 or later), like the SixSigma and qcr packages.
 ")
   )
 }
@@ -71,7 +77,9 @@ ui <- bslib::page_navbar(
   bslib::nav_menu(
     "Quality Tools", icon = shiny::icon("screwdriver-wrench"),
     bslib::nav_panel("Capability analysis", capabilityUI("capability")),
+    bslib::nav_panel("Non-normal capability", nonnormalUI("nonnormal")),
     bslib::nav_panel("Control charts", controlUI("control")),
+    bslib::nav_panel("Multivariate control charts", multivariateUI("multivariate")),
     bslib::nav_panel("Gage R&R", gageUI("gage")),
     bslib::nav_panel("Loss function", lfaUI("lfa")),
     bslib::nav_panel("Cause-and-effect diagram", ceUI("ce")),
@@ -95,6 +103,8 @@ server <- function(input, output, session) {
   doeAnalyzeServer("doe_analyze", data)
   capabilityServer("capability", data)
   controlServer("control", data)
+  multivariateServer("multivariate", data)
+  nonnormalServer("nonnormal", data)
   gageServer("gage", data)
   lfaServer("lfa", data)
   ceServer("ce")

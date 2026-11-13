@@ -1,15 +1,25 @@
 # Shared helpers for the app modules.
 
-# Sample datasets that ship with the SixSigma package (data frames only).
+# Sample datasets: those in the SixSigma package plus the CSV files in
+# data/qcr (from the qcr package). Returned as option groups for selectInput.
+qcr_data_dir <- function() file.path("data", "qcr")
+
 sample_datasets <- function() {
   items <- utils::data(package = "SixSigma")$results[, "Item"]
   env <- new.env()
   utils::data(list = items, package = "SixSigma", envir = env)
   keep <- vapply(items, function(i) is.data.frame(env[[i]]), logical(1))
-  items[keep]
+  qcr <- sub("\\.csv$", "", list.files(qcr_data_dir(), pattern = "\\.csv$"))
+  out <- list(`SixSigma package` = unname(items[keep]))
+  if (length(qcr)) out$`qcr package` <- stats::setNames(paste0("qcr:", qcr), qcr)
+  out
 }
 
 load_sample <- function(name) {
+  if (startsWith(name, "qcr:")) {
+    f <- file.path(qcr_data_dir(), paste0(sub("^qcr:", "", name), ".csv"))
+    return(utils::read.csv(f, stringsAsFactors = TRUE))
+  }
   env <- new.env()
   utils::data(list = name, package = "SixSigma", envir = env)
   as.data.frame(env[[name]])
@@ -106,4 +116,21 @@ int_cols <- function(df) {
 keep_selected <- function(session, id, choices, default) {
   prev <- intersect(shiny::isolate(session$input[[id]]), choices)
   if (length(prev)) prev else default
+}
+
+# Clear numeric inputs (e.g. spec limits) so they show as blank.
+clear_numeric <- function(session, ids) for (id in ids) session$sendInputMessage(id, list(value = ""))
+
+# Spec limits typed one at a time pass through odd combinations (new LSL with
+# the old USL). Wait until typing pauses before recalculating.
+debounced_inputs <- function(input, ids, ms = 600) {
+  stats::setNames(lapply(ids, function(id) shiny::debounce(shiny::reactive(input[[id]]), ms)), ids)
+}
+
+# TRUE when specification limits lie far outside the data, which usually
+# means they belong to another dataset or were mistyped.
+specs_far_from_data <- function(x, ...) {
+  x <- x[!is.na(x)]; lim <- stats::na.omit(c(...))
+  span <- diff(range(x)); if (!length(lim) || span <= 0) return(FALSE)
+  diff(range(c(x, lim))) > 25 * span
 }
