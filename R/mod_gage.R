@@ -14,7 +14,15 @@ gageUI <- function(id) {
       shiny::numericInput(ns("sigma"), "Study variation (number of sigmas)", 6, min = 1, max = 6),
       shiny::numericInput(ns("alpha"), "Alpha to remove interaction term", 0.05, min = 0, max = 1, step = 0.01),
       shiny::downloadButton(ns("download"), "Download report image"),
-      shiny::helpText("Each row is one measurement. Use the ss.data.rr sample dataset for an example.")
+      shiny::helpText("Each row is one measurement. Use the ss.data.rr sample dataset for an example."),
+      shiny::tags$hr(),
+      shiny::tags$b("Plan a new study"),
+      shiny::fluidRow(
+        shiny::column(4, shiny::numericInput(ns("plan_parts"), "Parts", 10, min = 2, max = 50)),
+        shiny::column(4, shiny::numericInput(ns("plan_ops"), "Operators", 3, min = 1, max = 10)),
+        shiny::column(4, shiny::numericInput(ns("plan_reps"), "Trials", 2, min = 1, max = 5))),
+      shiny::actionButton(ns("plan"), "Create study worksheet", icon = shiny::icon("table")),
+      shiny::helpText("Creates a worksheet with the part order randomized within each operator and trial.")
     ),
     shiny::tagList(
       bslib::card(bslib::card_header("Gage R&R report"), shiny::plotOutput(ns("plot"), height = 700)),
@@ -31,8 +39,15 @@ gageUI <- function(id) {
   )
 }
 
-gageServer <- function(id, data) {
+gageServer <- function(id, data, on_create = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
+    shiny::observeEvent(input$plan, {
+      res <- tryCatch(gage_rr_worksheet(input$plan_parts, input$plan_ops, input$plan_reps),
+                      error = function(e) { shiny::showNotification(conditionMessage(e), type = "error"); NULL })
+      if (is.null(res) || is.null(on_create)) return()
+      on_create(list(name = sprintf("Gage R&R study, %d measurements", nrow(res)), df = res))
+      shiny::showNotification("Study worksheet created. Enter each measurement in the Measurement column.", type = "message")
+    })
     shiny::observeEvent(data(), {
       df <- data()
       fac <- names(df)[!vapply(df, is.numeric, logical(1))]

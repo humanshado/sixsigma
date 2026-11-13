@@ -19,7 +19,9 @@ doe_generators <- list(
   "8-64" = c(G = "ABCD", H = "ABEF")
 )
 
-DOE_MAX_FACTORS <- 8
+DOE_MAX_FACTORS <- 23   # fractional factorials up to 8 factors; Plackett-Burman up to 23
+
+is_pb <- function(k, runs) runs %in% c(12, 20, 24) && runs != 2^k
 
 # Multiply two effects (letters cancel in pairs: A*A = I).
 word_mult <- function(a, b) {
@@ -43,10 +45,12 @@ doe_options <- function(k) {
   if (k < 2 || k > DOE_MAX_FACTORS) stop("Choose between 2 and ", DOE_MAX_FACTORS, " factors.")
   full <- 2^k
   fr <- names(doe_generators)[startsWith(names(doe_generators), paste0(k, "-"))]
-  runs <- c(as.integer(sub("^\\d+-", "", fr)), if (full <= 128) full)
+  pb <- c(12, 20, 24)[c(12, 20, 24) > k & c(12, 20, 24) < full]
+  runs <- c(as.integer(sub("^\\d+-", "", fr)), if (full <= 128) full, pb)
   runs <- sort(unique(runs))
   res <- vapply(runs, function(r) {
     if (r == full) return("Full factorial")
+    if (is_pb(k, r)) return("Plackett-Burman screening (main effects)")
     w <- defining_relation(doe_generators[[paste0(k, "-", r)]])
     sprintf("1/%d fraction, resolution %s", full / r, as.roman(min(nchar(w))))
   }, "")
@@ -55,6 +59,11 @@ doe_options <- function(k) {
 
 # Coded design matrix in standard (Yates) order.
 doe_coded <- function(k, runs) {
+  if (is_pb(k, runs)) {
+    m <- pb_matrix(runs)[, seq_len(k), drop = FALSE]
+    colnames(m) <- LETTERS[seq_len(k)]
+    return(list(matrix = m, generators = character(0), pb = TRUE))
+  }
   gens <- if (runs == 2^k) character(0) else doe_generators[[paste0(k, "-", runs)]]
   if (runs != 2^k && is.null(gens)) stop("No standard design with ", runs, " runs for ", k, " factors.")
   base <- k - length(gens)
@@ -106,6 +115,13 @@ doe_create <- function(factors, runs, replicates = 1, center = 0, randomize = TR
 
 # Alias structure for main effects and two-factor interactions.
 doe_aliases <- function(k, runs, names = LETTERS[seq_len(k)], max_order = 3) {
+  if (is_pb(k, runs)) {
+    return(list(defining = "Plackett-Burman design: no defining relation (non-regular design)",
+                resolution = "III",
+                table = data.frame(Effect = names,
+                                   `Aliased with (up to 3-factor terms)` = "Partially aliased with every two-factor interaction that does not involve it",
+                                   check.names = FALSE)))
+  }
   gens <- if (runs == 2^k) character(0) else doe_generators[[paste0(k, "-", runs)]]
   dr <- defining_relation(gens)
   lab <- function(w) paste(names[match(strsplit(w, "")[[1]], LETTERS)], collapse = "*")

@@ -9,7 +9,7 @@ dataUI <- function(id) {
     shiny::tagList(
       shiny::radioButtons(ns("source"), "Data source",
                           c("Sample dataset" = "sample", "Upload file" = "upload", "Paste data" = "paste",
-                            "Created design (DOE)" = "design")),
+                            "Created worksheet (DOE, gage study)" = "design")),
       shiny::conditionalPanel(
         "input.source == 'sample'", ns = ns,
         shiny::selectInput(ns("sample"), "Dataset", choices = sample_datasets(), selected = "ss.data.ca"),

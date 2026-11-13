@@ -13,6 +13,7 @@ doeCreateUI <- function(id) {
     "Create factorial design",
     shiny::tagList(
       shiny::numericInput(ns("k"), "Number of factors", 3, min = 2, max = DOE_MAX_FACTORS),
+      shiny::helpText("Up to 8 factors for full and fractional factorials; up to 23 with Plackett-Burman screening designs."),
       shiny::selectInput(ns("runs"), "Design", choices = NULL),
       shiny::numericInput(ns("reps"), "Replicates", 1, min = 1, max = 10),
       shiny::numericInput(ns("center"), "Center points", 0, min = 0, max = 20),
@@ -62,12 +63,14 @@ doeCreateServer <- function(id, on_create) {
         shiny::column(3, shiny::tags$b("Low level")), shiny::column(3, shiny::tags$b("High level")))
       rows <- lapply(seq_len(n), function(i) {
         old <- function(what, def) shiny::isolate(input[[paste0(what, i)]]) %||% def
+        dflt <- if (i <= nrow(default_factors)) default_factors[i, ] else
+          data.frame(name = paste0("Factor", i), low = "-1", high = "1")
         shiny::fluidRow(
           class = "align-items-center",
           shiny::column(1, shiny::tags$b(LETTERS[i])),
-          shiny::column(5, shiny::textInput(session$ns(paste0("name", i)), NULL, old("name", default_factors$name[i]))),
-          shiny::column(3, shiny::textInput(session$ns(paste0("low", i)), NULL, old("low", default_factors$low[i]))),
-          shiny::column(3, shiny::textInput(session$ns(paste0("high", i)), NULL, old("high", default_factors$high[i])))
+          shiny::column(5, shiny::textInput(session$ns(paste0("name", i)), NULL, old("name", dflt$name))),
+          shiny::column(3, shiny::textInput(session$ns(paste0("low", i)), NULL, old("low", dflt$low))),
+          shiny::column(3, shiny::textInput(session$ns(paste0("high", i)), NULL, old("high", dflt$high)))
         )
       })
       rows <- c(list(header), rows)
@@ -96,7 +99,8 @@ doeCreateServer <- function(id, on_create) {
       reps <- max(1, input$reps %||% 1); ct <- max(0, input$center %||% 0)
       data.frame(Factors = k(), `Base runs` = runs(), Replicates = reps, `Center points` = ct,
                  `Total runs` = runs() * reps + ct, Resolution = a$resolution,
-                 Fraction = if (runs() == 2^k()) "Full" else sprintf("1/%d", 2^k() / runs()), check.names = FALSE)
+                 Fraction = if (runs() == 2^k()) "Full" else if (is_pb(k(), runs())) "Plackett-Burman"
+                            else sprintf("1/%d", 2^k() / runs()), check.names = FALSE)
     }))
     output$defining <- shiny::renderUI({
       a <- doe_aliases(k(), runs())

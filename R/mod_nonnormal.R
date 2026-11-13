@@ -14,6 +14,8 @@ nonnormalUI <- function(id) {
       shiny::conditionalPanel("input.dist == 'boxcox' || input.dist == 'best'", ns = ns,
         shiny::checkboxInput(ns("round_lambda"), "Round Box-Cox λ to the nearest 0.5", FALSE)),
       shiny::numericInput(ns("bins"), "Histogram bins", 20, min = 5, max = 100),
+      shiny::numericInput(ns("B"), "Simulations for goodness-of-fit p-values", 200, min = 50, max = 2000, step = 50),
+      shiny::actionButton(ns("pvals"), "Compute p-values", icon = shiny::icon("calculator")),
       shiny::downloadButton(ns("download"), "Download charts"),
       shiny::helpText("Use this when the data are skewed or otherwise not normal (check the normality tests in ",
                       "Stat > Basic statistics). Capability is computed from the fitted distribution's ",
@@ -22,7 +24,9 @@ nonnormalUI <- function(id) {
     shiny::tagList(
       bslib::card(bslib::card_header("Distribution fits (best first)"), shiny::tableOutput(ns("compare")),
                   shiny::helpText("Lower AIC and lower Anderson-Darling (AD) statistic mean a better fit. ",
-                                  "Distributions that need positive data are skipped when values are zero or negative.")),
+                                  "Distributions that need positive data are skipped when values are zero or negative. ",
+                                  "'Compute p-values' simulates the AD test for each fit (parametric bootstrap); ",
+                                  "p < 0.05 means the distribution does not fit.")),
       bslib::layout_columns(
         col_widths = c(7, 5),
         bslib::card(shiny::plotOutput(ns("hist"), height = 380)),
@@ -71,8 +75,25 @@ nonnormalServer <- function(id, data) {
     })
     cap <- shiny::reactive({ s <- specs(); validate_run(nn_capability(fit(), s$lsl, s$usl, s$target)) })
 
-    output$compare <- shiny::renderTable(comparison()[, c("Rank", "Distribution", "AD statistic", "AIC", "Parameters")],
-                                         digits = 4)
+    pv <- shiny::reactiveVal(NULL)
+    shiny::observeEvent(list(x(), input$round_lambda), pv(NULL))
+    shiny::observeEvent(input$pvals, {
+      cmp <- comparison(); B <- max(50, min(2000, input$B %||% 200))
+      p <- shiny::withProgress(message = "Simulating goodness-of-fit p-values", value = 0, {
+        vapply(seq_len(nrow(cmp)), function(i) {
+          shiny::incProgress(1 / nrow(cmp), detail = cmp$Distribution[i])
+          f <- tryCatch(nn_fit(x(), cmp$Code[i], isTRUE(input$round_lambda)), error = function(e) NULL)
+          if (is.null(f)) NA_real_ else nn_ad_pvalue(f, B, isTRUE(input$round_lambda))
+        }, numeric(1))
+      })
+      pv(stats::setNames(p, cmp$Code))
+    })
+    output$compare <- shiny::renderTable({
+      cmp <- comparison()
+      out <- cmp[, c("Rank", "Distribution", "AD statistic", "AIC", "Parameters")]
+      if (!is.null(pv())) out <- data.frame(out[, 1:3], `AD p-value` = unname(pv()[cmp$Code]), out[, 4:5], check.names = FALSE)
+      out
+    }, digits = 4)
     output$used <- shiny::renderText(sprintf("Capability (%s)", fit()$label))
     output$indices <- shiny::renderTable(cap()$indices, digits = 4, na = "")
     output$quant <- shiny::renderTable(cap()$quantiles, digits = 5)

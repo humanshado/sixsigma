@@ -42,12 +42,15 @@ and co-authors. No R knowledge is needed to use it.
 | Quality Tools | Control charts: I-MR, Xbar-R, Xbar-S, P, NP, C, U, EWMA, CUSUM | Shewhart formulas with SixSigma constants; qcr methods |
 | Quality Tools | Multivariate control charts: Hotelling T², MEWMA, MCUSUM; nonparametric depth r, Q, S charts | qcr methods |
 | Quality Tools | Gage R&R (crossed or nested) | `ss.rr` |
+| DOE | Plackett-Burman screening designs; response surface designs (central composite, Box-Behnken) with contour/surface plots, stationary point and steepest ascent; desirability response optimizer; mixture designs (simplex lattice/centroid, Scheffe models, ternary plots); Taguchi orthogonal arrays with S/N analysis | built in |
+| Quality Tools | Gage R&R worksheet generator, gage linearity and bias, type 1 gage study (Cg, Cgk), multi-vari chart | built in |
 | Quality Tools | Taguchi loss function | `ss.lfa` |
 | Quality Tools | Cause-and-effect diagram | `ss.ceDiag` |
 | Quality Tools | Pareto chart with cumulative percentage and 'Other' grouping | ggplot2 |
 | Quality Tools | Process yield (FTY, RTY, DPMO) | `ss.ca.yield` |
 
-Several methods and example datasets are adapted from the
+Several features follow the r6qualitytools package (Encarnacion, Barahona, Flores et al.),
+implemented here from the published methods. Several methods and example datasets are adapted from the
 [qcr](https://github.com/mflores72000/qcr) package by Miguel Flores, Rubén
 Fernández-Casal, Salvador Naya and Javier Tarrío-Saavedra.
 
@@ -71,8 +74,15 @@ ui <- bslib::page_navbar(
   ),
   bslib::nav_menu(
     "DOE", icon = shiny::icon("flask"),
-    bslib::nav_panel("Create factorial design", doeCreateUI("doe_create")),
-    bslib::nav_panel("Analyze factorial design", doeAnalyzeUI("doe_analyze"))
+    bslib::nav_panel("Create factorial / screening design", doeCreateUI("doe_create")),
+    bslib::nav_panel("Analyze factorial design", doeAnalyzeUI("doe_analyze")),
+    bslib::nav_panel("Create response surface design", rsmCreateUI("rsm_create")),
+    bslib::nav_panel("Analyze response surface", rsmAnalyzeUI("rsm_analyze")),
+    bslib::nav_panel("Response optimizer", optimizerUI("optimizer")),
+    bslib::nav_panel("Create mixture design", mixtureCreateUI("mix_create")),
+    bslib::nav_panel("Analyze mixture design", mixtureAnalyzeUI("mix_analyze")),
+    bslib::nav_panel("Create Taguchi design", taguchiCreateUI("tag_create")),
+    bslib::nav_panel("Analyze Taguchi design", taguchiAnalyzeUI("tag_analyze"))
   ),
   bslib::nav_menu(
     "Quality Tools", icon = shiny::icon("screwdriver-wrench"),
@@ -81,6 +91,9 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Control charts", controlUI("control")),
     bslib::nav_panel("Multivariate control charts", multivariateUI("multivariate")),
     bslib::nav_panel("Gage R&R", gageUI("gage")),
+    bslib::nav_panel("Gage linearity and bias", gageLinUI("gage_lin")),
+    bslib::nav_panel("Type 1 gage study", gageType1UI("gage_t1")),
+    bslib::nav_panel("Multi-vari chart", multivariUI("multivari")),
     bslib::nav_panel("Loss function", lfaUI("lfa")),
     bslib::nav_panel("Cause-and-effect diagram", ceUI("ce")),
     bslib::nav_panel("Pareto chart", paretoUI("pareto")),
@@ -96,16 +109,27 @@ server <- function(input, output, session) {
   basicServer("basic", data)
   hypothesisServer("hypothesis", data)
   regressionServer("regression", data)
-  doeCreateServer("doe_create", on_create = function(design) {
+  send_to_worksheet <- function(design) {
     created_design(design)
     bslib::nav_select("nav", "Data", session = session)
-  })
+  }
+  doeCreateServer("doe_create", on_create = send_to_worksheet)
+  rsmCreateServer("rsm_create", on_create = send_to_worksheet)
+  rsmAnalyzeServer("rsm_analyze", data)
+  optimizerServer("optimizer", data)
+  mixtureCreateServer("mix_create", on_create = send_to_worksheet)
+  mixtureAnalyzeServer("mix_analyze", data)
+  taguchiCreateServer("tag_create", on_create = send_to_worksheet)
+  taguchiAnalyzeServer("tag_analyze", data)
+  gageLinServer("gage_lin", data)
+  gageType1Server("gage_t1", data)
+  multivariServer("multivari", data)
   doeAnalyzeServer("doe_analyze", data)
   capabilityServer("capability", data)
   controlServer("control", data)
   multivariateServer("multivariate", data)
   nonnormalServer("nonnormal", data)
-  gageServer("gage", data)
+  gageServer("gage", data, on_create = send_to_worksheet)
   lfaServer("lfa", data)
   ceServer("ce")
   paretoServer("pareto", data)

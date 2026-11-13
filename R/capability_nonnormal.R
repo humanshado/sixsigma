@@ -9,7 +9,8 @@
 
 nn_distributions <- c("Normal" = "normal", "Lognormal" = "lognormal", "Weibull" = "weibull",
                       "Gamma" = "gamma", "Exponential" = "exponential", "Logistic" = "logistic",
-                      "Box-Cox transformation" = "boxcox")
+                      "3-parameter lognormal" = "lognormal3", "3-parameter Weibull" = "weibull3",
+                      "3-parameter gamma" = "gamma3", "Box-Cox transformation" = "boxcox")
 nn_positive <- c("lognormal", "weibull", "gamma", "exponential", "boxcox")
 
 # Box-Cox lambda by maximum profile likelihood:
@@ -29,6 +30,7 @@ bc_inv <- function(y, l) if (abs(l) < 1e-8) exp(y) else pmax(l * y + 1, 0)^(1 / 
 nn_fit <- function(x, dist, round_lambda = FALSE) {
   x <- x[!is.na(x)]
   if (length(x) < 8) stop("At least 8 values are needed to fit a distribution.")
+  if (dist %in% c("lognormal3", "weibull3", "gamma3")) return(nn_fit3(x, dist))
   if (dist %in% nn_positive && any(x <= 0)) stop(names(nn_distributions)[nn_distributions == dist],
                                                  " needs all values to be positive.")
   m <- mean(x); v <- stats::var(x)
@@ -76,6 +78,23 @@ nn_fit <- function(x, dist, round_lambda = FALSE) {
   list(dist = dist, label = names(nn_distributions)[nn_distributions == dist], par = f$par,
        dfun = function(q) f$d(q, f$par), pfun = function(q) f$p(q, f$par), qfun = function(pr) f$q(pr, f$par),
        loglik = ll, aic = -2 * ll + 2 * k, x = x)
+}
+
+# Three-parameter versions: a threshold (lower bound) theta is estimated by
+# maximising the profile likelihood of the two-parameter fit to x - theta.
+nn_fit3 <- function(x, dist) {
+  base <- sub("3$", "", dist)
+  span <- diff(range(x)); if (span == 0) stop("All values are identical.")
+  prof <- function(th) tryCatch(nn_fit(x - th, base)$loglik, error = function(e) -Inf)
+  lo <- min(x) - 3 * span; hi <- min(x) - 1e-3 * span
+  o <- stats::optimize(prof, c(lo, hi), maximum = TRUE)
+  th <- o$maximum
+  b <- nn_fit(x - th, base)
+  par <- c(threshold = th, b$par)
+  ll <- b$loglik
+  list(dist = dist, label = names(nn_distributions)[nn_distributions == dist], par = par,
+       dfun = function(q) ifelse(q > th, b$dfun(q - th), 0), pfun = function(q) ifelse(q > th, b$pfun(q - th), 0),
+       qfun = function(pr) th + b$qfun(pr), loglik = ll, aic = -2 * ll + 2 * length(par), x = x)
 }
 
 # Anderson-Darling statistic of the data against a fitted cdf.
@@ -155,4 +174,19 @@ nn_probability_plot <- function(fit) {
                   subtitle = "Points close to the line indicate a good fit",
                   x = "Fitted quantile", y = "Observed value") +
     ggplot2::theme_minimal(base_size = 13) + ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
+}
+
+# Goodness-of-fit p-values by parametric bootstrap: simulate samples from the
+# fitted distribution, refit, and compare their AD statistics with the
+# observed one. Needed because the usual AD tables assume known parameters.
+nn_ad_pvalue <- function(fit, B = 200, round_lambda = FALSE, seed = 1) {
+  set.seed(seed)
+  a0 <- ad_statistic(fit$x, fit$pfun); n <- length(fit$x)
+  sims <- vapply(seq_len(B), function(i) {
+    xs <- fit$qfun(stats::runif(n))
+    f <- tryCatch(nn_fit(xs, fit$dist, round_lambda), error = function(e) NULL)
+    if (is.null(f)) NA_real_ else ad_statistic(xs, f$pfun)
+  }, numeric(1))
+  sims <- sims[is.finite(sims)]
+  (1 + sum(sims >= a0)) / (length(sims) + 1)
 }
