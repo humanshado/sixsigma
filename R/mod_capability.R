@@ -16,10 +16,11 @@ capabilityUI <- function(id) {
                          c("Moving range (individual values)" = "mr",
                            "Pooled std. dev., subgroups of fixed size" = "size",
                            "Pooled std. dev., subgroups from a column" = "col",
+                           "Between/within (batches), subgroups from a column" = "bw",
                            "Do not estimate (overall only)" = "none")),
       shiny::conditionalPanel("input.within == 'size'", ns = ns,
         shiny::numericInput(ns("sg_size"), "Subgroup size", 5, min = 2)),
-      shiny::conditionalPanel("input.within == 'col'", ns = ns,
+      shiny::conditionalPanel("input.within == 'col' || input.within == 'bw'", ns = ns,
         column_picker(ns("sg_col"), "Subgroup column")),
       shiny::numericInput(ns("conf"), "Confidence level (%)", 95, min = 50, max = 99.9, step = 0.5),
       shiny::numericInput(ns("k"), "Required capability for the plot (k)", 1.33, min = 0.5, max = 3, step = 0.01),
@@ -105,6 +106,10 @@ capabilityServer <- function(id, data) {
         col = {
           shiny::req(input$sg_col %in% names(df))
           validate_run(cap_within_sigma(p$x, "pooled", df[[input$sg_col]]))
+        },
+        bw = {
+          shiny::req(input$sg_col %in% names(df))
+          validate_run(cap_between_within(p$x, df[[input$sg_col]])$total)
         })
     })
 

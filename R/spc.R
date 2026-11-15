@@ -30,52 +30,81 @@ spc_subgroups <- function(x, groups = NULL, size = NULL, min_size = 2) {
   sg
 }
 
-# Run rules applied to a sequence of plotted points.
-#   1: one point beyond the control limits
+# Run rules (Nelson / Western Electric tests, numbered as in Minitab),
+# applied to a sequence of plotted points. Zones use sigma = (UCL - CL) / k.
+#   1: one point more than k sigma from the centre line (beyond the limits)
 #   2: nine points in a row on the same side of the centre line
 #   3: six points in a row steadily increasing or decreasing
-spc_rules <- function(y, cl, lcl, ucl) {
+#   4: fourteen points in a row alternating up and down
+#   5: two out of three points more than 2 sigma from the CL, same side
+#   6: four out of five points more than 1 sigma from the CL, same side
+#   7: fifteen points in a row within 1 sigma of the CL (either side)
+#   8: eight points in a row more than 1 sigma from the CL (either side)
+rule_text <- c("1 point beyond control limits", "9 points on one side of CL", "6 points trending",
+               "14 points alternating", "2 of 3 points beyond 2 sigma", "4 of 5 points beyond 1 sigma",
+               "15 points within 1 sigma", "8 points beyond 1 sigma")
+
+spc_rules <- function(y, cl, lcl, ucl, k = 3) {
   n <- length(y)
   cl <- rep_len(cl, n); lcl <- rep_len(lcl, n); ucl <- rep_len(ucl, n)
   viol <- vector("list", n)
   add <- function(i, r) viol[[i]] <<- sort(unique(c(viol[[i]], r)))
-
   for (i in seq_len(n)) {
     if (is.na(y[i])) next
     if ((!is.na(ucl[i]) && y[i] > ucl[i]) || (!is.na(lcl[i]) && y[i] < lcl[i])) add(i, 1L)
   }
+  # Consecutive-run helper: length of the current run where cond holds.
+  run_len <- function(cond) { r <- integer(length(cond)); cur <- 0L
+    for (i in seq_along(cond)) { cur <- if (isTRUE(cond[i])) cur + 1L else 0L; r[i] <- cur }; r }
   side <- sign(y - cl)
-  run <- 0L
-  for (i in seq_len(n)) {
-    if (i > 1 && !is.na(side[i]) && side[i] != 0 && identical(side[i], side[i - 1])) {
-      run <- run + 1L
-    } else {
-      run <- if (!is.na(side[i]) && side[i] != 0) 1L else 0L
-    }
-    if (run >= 9) add(i, 2L)
-  }
+  above <- run_len(side > 0); below <- run_len(side < 0)
+  for (i in which(above >= 9 | below >= 9)) add(i, 2L)
   d <- sign(diff(y))
-  run <- 0L
+  up <- run_len(d > 0); dn <- run_len(d < 0)
+  for (i in which(up >= 5 | dn >= 5)) add(i + 1L, 3L)
+  # Zones need a centre line and an upper limit.
+  s <- (ucl - cl) / k
+  if (all(is.na(s)) || all(is.na(cl))) return(viol)
+  z <- (y - cl) / s
+  alt <- integer(length(d)); cur <- 0L
   for (i in seq_along(d)) {
-    if (i > 1 && !is.na(d[i]) && d[i] != 0 && identical(d[i], d[i - 1])) {
-      run <- run + 1L
-    } else {
-      run <- if (!is.na(d[i]) && d[i] != 0) 1L else 0L
-    }
-    # A run of 5 consecutive moves in one direction spans 6 points.
-    if (run >= 5) add(i + 1L, 3L)
+    cur <- if (!is.na(d[i]) && d[i] != 0 && i > 1 && !is.na(d[i - 1]) && d[i] == -d[i - 1]) cur + 1L
+           else if (!is.na(d[i]) && d[i] != 0) 1L else 0L
+    alt[i] <- cur
   }
+  for (i in which(alt >= 13)) add(i + 1L, 4L)
+  win <- function(i, w, cond, m) { if (i < w) return(FALSE); idx <- (i - w + 1):i; sum(cond[idx], na.rm = TRUE) >= m }
+  for (i in seq_len(n)) {
+    if (is.na(z[i])) next
+    if ((z[i] > 2 && win(i, 3, z > 2, 2)) || (z[i] < -2 && win(i, 3, z < -2, 2))) add(i, 5L)
+    if ((z[i] > 1 && win(i, 5, z > 1, 4)) || (z[i] < -1 && win(i, 5, z < -1, 4))) add(i, 6L)
+  }
+  for (i in which(run_len(abs(z) < 1) >= 15)) add(i, 7L)
+  for (i in which(run_len(abs(z) > 1) >= 8)) add(i, 8L)
   viol
 }
 
-new_chart <- function(title, ylab, y, cl, lcl, ucl, labels = seq_along(y), rules = 1:3) {
+# Re-apply a chosen set of rules to a chart (e.g. from the rule checkboxes).
+apply_rules <- function(ch, rules) {
+  if (inherits(ch, "spc_cusum")) return(ch)
+  allowed <- intersect(rules, ch$rules_allowed %||% 1:8)
+  all <- spc_rules(ch$y, ch$cl, ch$lcl, ch$ucl, ch$k %||% 3)
+  ch$violations <- lapply(all, function(r) r[r %in% allowed])
+  ch
+}
+
+new_chart <- function(title, ylab, y, cl, lcl, ucl, labels = seq_along(y), rules = 1:3, k = 3) {
   n <- length(y)
   lcl <- rep_len(lcl, n); ucl <- rep_len(ucl, n); cl <- rep_len(cl, n)
-  viol <- lapply(spc_rules(y, cl, lcl, ucl), function(r) r[r %in% rules])
+  viol <- lapply(spc_rules(y, cl, lcl, ucl, k), function(r) r[r %in% rules])
+  # Charts that allow only some rules (e.g. EWMA, CUSUM: limits only) record it.
   structure(list(title = title, ylab = ylab, y = y, cl = cl, lcl = lcl,
-                 ucl = ucl, labels = labels, violations = viol),
+                 ucl = ucl, labels = labels, violations = viol, k = k,
+                 rules_allowed = if (identical(rules, 1)) 1L else 1:8),
             class = "spc_chart")
 }
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
 # Indices of points used to estimate limits (all, or the first `n_est`).
 est_index <- function(m, n_est) {
@@ -83,66 +112,69 @@ est_index <- function(m, n_est) {
   else seq_len(n_est)
 }
 
-spc_imr <- function(x, k = 3, n_est = NULL) {
+# Historical (known) parameters can be given instead of estimating limits:
+# mu and sigma for variables charts, p for P/NP, c for C and u for U charts.
+hist_val <- function(h, name) { v <- h[[name]]; if (is.null(v) || is.na(v)) NULL else v }
+
+spc_imr <- function(x, k = 3, n_est = NULL, hist = list()) {
   x <- x[!is.na(x)]
   if (length(x) < 3) stop("At least three observations are needed.")
   ix <- est_index(length(x), n_est)
   xe <- x[ix]
-  mr_e <- abs(diff(xe))
-  mrbar <- mean(mr_e)
-  sigma <- mrbar / spc_d2(2)
-  xbar <- mean(xe)
+  sigma <- hist_val(hist, "sigma") %||% (mean(abs(diff(xe))) / spc_d2(2))
+  xbar <- hist_val(hist, "mu") %||% mean(xe)
+  mrbar <- sigma * spc_d2(2)
   mr <- abs(diff(x))
   r <- spc_d3(2) / spc_d2(2)
   list(
     sigma = sigma,
     charts = list(
       new_chart("Individuals (I) chart", "Individual value", x, xbar,
-                xbar - k * sigma, xbar + k * sigma),
+                xbar - k * sigma, xbar + k * sigma, k = k),
       new_chart("Moving range (MR) chart", "Moving range", c(NA, mr), mrbar,
-                max(0, mrbar * (1 - k * r)), mrbar * (1 + k * r))
+                max(0, mrbar * (1 - k * r)), mrbar * (1 + k * r), k = k)
     )
   )
 }
 
-spc_xbar_r <- function(sg, k = 3, n_est = NULL) {
+spc_xbar_r <- function(sg, k = 3, n_est = NULL, hist = list()) {
   n <- vapply(sg, length, integer(1))
   ix <- est_index(length(sg), n_est)
   means <- vapply(sg, mean, numeric(1))
   ranges <- vapply(sg, function(v) diff(range(v)), numeric(1))
   d2 <- vapply(n, spc_d2, numeric(1))
   d3 <- vapply(n, spc_d3, numeric(1))
-  sigma <- mean(ranges[ix] / d2[ix])
-  grand <- sum(means[ix] * n[ix]) / sum(n[ix])
+  sigma <- hist_val(hist, "sigma") %||% mean(ranges[ix] / d2[ix])
+  grand <- hist_val(hist, "mu") %||% (sum(means[ix] * n[ix]) / sum(n[ix]))
   rcl <- d2 * sigma
   list(
     sigma = sigma,
     charts = list(
       new_chart("Xbar chart", "Subgroup mean", unname(means), grand,
-                grand - k * sigma / sqrt(n), grand + k * sigma / sqrt(n), names(sg)),
+                grand - k * sigma / sqrt(n), grand + k * sigma / sqrt(n), names(sg), k = k),
       new_chart("R chart", "Subgroup range", unname(ranges), rcl,
-                pmax(0, rcl - k * d3 * sigma), rcl + k * d3 * sigma, names(sg))
+                pmax(0, rcl - k * d3 * sigma), rcl + k * d3 * sigma, names(sg), k = k)
     )
   )
 }
 
-spc_xbar_s <- function(sg, k = 3, n_est = NULL) {
+spc_xbar_s <- function(sg, k = 3, n_est = NULL, hist = list()) {
   n <- vapply(sg, length, integer(1))
   ix <- est_index(length(sg), n_est)
   means <- vapply(sg, mean, numeric(1))
   sds <- vapply(sg, sd, numeric(1))
   c4 <- vapply(n, spc_c4, numeric(1))
-  sigma <- mean(sds[ix] / c4[ix])
-  grand <- sum(means[ix] * n[ix]) / sum(n[ix])
+  sigma <- hist_val(hist, "sigma") %||% mean(sds[ix] / c4[ix])
+  grand <- hist_val(hist, "mu") %||% (sum(means[ix] * n[ix]) / sum(n[ix]))
   scl <- c4 * sigma
   list(
     sigma = sigma,
     charts = list(
       new_chart("Xbar chart", "Subgroup mean", unname(means), grand,
-                grand - k * sigma / sqrt(n), grand + k * sigma / sqrt(n), names(sg)),
+                grand - k * sigma / sqrt(n), grand + k * sigma / sqrt(n), names(sg), k = k),
       new_chart("S chart", "Subgroup std. dev.", unname(sds), scl,
                 pmax(0, scl - k * sigma * sqrt(1 - c4^2)),
-                scl + k * sigma * sqrt(1 - c4^2), names(sg))
+                scl + k * sigma * sqrt(1 - c4^2), names(sg), k = k)
     )
   )
 }
@@ -154,43 +186,43 @@ check_counts <- function(d, n = NULL) {
   if (!is.null(n) && any(d > n, na.rm = TRUE)) stop("A count is larger than its sample size.")
 }
 
-spc_p <- function(d, n, k = 3, n_est = NULL) {
+spc_p <- function(d, n, k = 3, n_est = NULL, hist = list()) {
   check_counts(d, n)
   n <- rep_len(n, length(d))
   ix <- est_index(length(d), n_est)
-  pbar <- sum(d[ix]) / sum(n[ix])
+  pbar <- hist_val(hist, "p") %||% (sum(d[ix]) / sum(n[ix]))
   se <- sqrt(pbar * (1 - pbar) / n)
   list(charts = list(new_chart("P chart", "Proportion defective", d / n, pbar,
-                               pmax(0, pbar - k * se), pmin(1, pbar + k * se))))
+                               pmax(0, pbar - k * se), pmin(1, pbar + k * se), k = k)))
 }
 
-spc_np <- function(d, n, k = 3, n_est = NULL) {
+spc_np <- function(d, n, k = 3, n_est = NULL, hist = list()) {
   check_counts(d, n)
   if (length(unique(n)) != 1) stop("An NP chart needs a constant sample size; use a P chart instead.")
   n <- n[1]
   ix <- est_index(length(d), n_est)
-  pbar <- sum(d[ix]) / (n * length(ix))
+  pbar <- hist_val(hist, "p") %||% (sum(d[ix]) / (n * length(ix)))
   se <- sqrt(n * pbar * (1 - pbar))
   list(charts = list(new_chart("NP chart", "Number defective", d, n * pbar,
-                               max(0, n * pbar - k * se), n * pbar + k * se)))
+                               max(0, n * pbar - k * se), n * pbar + k * se, k = k)))
 }
 
-spc_c <- function(d, k = 3, n_est = NULL) {
+spc_c <- function(d, k = 3, n_est = NULL, hist = list()) {
   check_counts(d)
   ix <- est_index(length(d), n_est)
-  cbar <- mean(d[ix])
+  cbar <- hist_val(hist, "c") %||% mean(d[ix])
   list(charts = list(new_chart("C chart", "Number of defects", d, cbar,
-                               max(0, cbar - k * sqrt(cbar)), cbar + k * sqrt(cbar))))
+                               max(0, cbar - k * sqrt(cbar)), cbar + k * sqrt(cbar), k = k)))
 }
 
-spc_u <- function(d, n, k = 3, n_est = NULL) {
+spc_u <- function(d, n, k = 3, n_est = NULL, hist = list()) {
   check_counts(d, n)
   n <- rep_len(n, length(d))
   ix <- est_index(length(d), n_est)
-  ubar <- sum(d[ix]) / sum(n[ix])
+  ubar <- hist_val(hist, "u") %||% (sum(d[ix]) / sum(n[ix]))
   se <- sqrt(ubar / n)
   list(charts = list(new_chart("U chart", "Defects per unit", d / n, ubar,
-                               pmax(0, ubar - k * se), ubar + k * se)))
+                               pmax(0, ubar - k * se), ubar + k * se, k = k)))
 }
 
 # Plot one chart with ggplot2. Points that break a run rule are red.
@@ -217,6 +249,13 @@ plot_chart <- function(ch) {
       ggplot2::annotate("text", x = ch$ref_end + 0.5, y = Inf, label = c("Phase I  ", "  Phase II"),
                         hjust = c(1, 0), vjust = 1.5, size = 3.3, colour = "grey30")
   }
+  if (!is.null(ch$stage_breaks) && length(ch$stage_breaks) > 1) {
+    br <- ch$stage_breaks
+    starts <- c(0, utils::head(br, -1))
+    g <- g + ggplot2::geom_vline(xintercept = utils::head(br, -1) + 0.5, linetype = 2, colour = "grey35") +
+      ggplot2::annotate("label", x = (starts + br) / 2 + 0.5, y = Inf, label = ch$stage_names, vjust = 1.2,
+                        size = 3.3, label.size = 0, fill = "grey92")
+  }
   has <- function(v) any(!is.na(v))
   if (step_limits) {
     if (has(df$ucl)) g <- g + ggplot2::geom_step(ggplot2::aes(y = ucl), colour = "#c0392b", direction = "mid", na.rm = TRUE)
@@ -237,7 +276,6 @@ plot_chart <- function(ch) {
 
 # Table of rule violations for the results pane.
 violation_table <- function(charts) {
-  rule_text <- c("Beyond control limits", "9 points on one side of CL", "6 points trending")
   rows <- lapply(charts, function(ch) {
     hit <- which(vapply(ch$violations, length, integer(1)) > 0)
     if (!length(hit)) return(NULL)

@@ -11,6 +11,8 @@
 #                    fails to start with "function 'Rcpp_precious_remove' not
 #                    provided by package 'Rcpp'"
 #   later 1.3.0      a later release built for current Rcpp
+#   MASS, nlme       distribution fitting, ordinal regression and REML variance
+#                    components (both ship with R as recommended packages)
 # The other packages have had the functions used for many years.
 
 r_min_version <- "4.1.0"
@@ -26,6 +28,8 @@ required_packages <- c(
   nortest   = "1.0-4",
   e1071     = "1.6",
   readxl    = "1.0.0",
+  MASS      = "7.3-0",
+  nlme      = "3.1-0",
   Rcpp      = "1.0.7",
   later     = "1.3.0",
   testthat  = "3.0.0"

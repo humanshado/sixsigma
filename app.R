@@ -47,6 +47,10 @@ and co-authors. No R knowledge is needed to use it.
 | Stat | Sample size and power (t-tests, proportions, ANOVA, factorial designs); reliability / life data analysis with censoring (Weibull, lognormal, exponential, log-logistic, normal; B-lives, MTTF, Kaplan-Meier) | built in |
 | Quality Tools | FMEA worksheet (RPN, risk matrix, actions); acceptance sampling plans (single, double, variables; OC, AOQ, ATI) | built in |
 | MSA | Attribute agreement analysis (percent agreement, Fleiss' kappa, Kendall's W) | built in |
+| Stat | Equivalence tests (TOST), tolerance intervals (exact normal and nonparametric), correlation, outlier tests (Grubbs, generalized ESD), time series (trends, smoothing, decomposition, autocorrelation) | built in |
+| Models | Regression, stepwise and best subsets regression, binary and ordinal logistic regression, general ANOVA with fixed/random, crossed/nested factors and covariates | base R, MASS, nlme |
+| Quality Tools | Control charts also include Laney P'/U', G, T, Z-MR and I-MR-R/S charts, all eight Nelson tests, historical limits and stages; capability sixpack, between/within, attribute and multivariate capability | built in |
+| MSA | Expanded Gage R&R with extra factors and unbalanced data (REML) | nlme |
 | Project & report | Save and open projects; add any page to a report and download it as HTML or Word | built in |
 | Quality Tools | Taguchi loss function | `ss.lfa` |
 | Quality Tools | Cause-and-effect diagram | `ss.ceDiag` |
@@ -75,9 +79,22 @@ ui <- bslib::page_navbar(
     "Stat", icon = shiny::icon("chart-column"),
     bslib::nav_panel("Basic statistics", basicUI("basic")),
     bslib::nav_panel("Hypothesis tests", hypothesisUI("hypothesis")),
-    bslib::nav_panel("Regression", regressionUI("regression")),
+    bslib::nav_panel("Equivalence tests", equivalenceUI("equivalence")),
+    bslib::nav_panel("Tolerance intervals", toleranceUI("tolerance")),
+    bslib::nav_panel("Correlation", correlationUI("correlation")),
+    bslib::nav_panel("Outlier tests", outlierUI("outliers")),
+    bslib::nav_panel("Time series", timeseriesUI("timeseries")),
     bslib::nav_panel("Sample size and power", powerUI("power")),
     bslib::nav_panel("Reliability / life data", reliabilityUI("reliability"))
+  ),
+  bslib::nav_menu(
+    "Models", icon = shiny::icon("chart-line"),
+    bslib::nav_panel("Regression", regressionUI("regression")),
+    bslib::nav_panel("Stepwise regression", stepwiseUI("stepwise")),
+    bslib::nav_panel("Best subsets regression", bestSubsetsUI("bestsub")),
+    bslib::nav_panel("Binary logistic regression", logitUI("logit")),
+    bslib::nav_panel("Ordinal logistic regression", ordinalUI("ordinal")),
+    bslib::nav_panel("General ANOVA", anovaUI("anova"))
   ),
   bslib::nav_menu(
     "DOE", icon = shiny::icon("flask"),
@@ -95,6 +112,9 @@ ui <- bslib::page_navbar(
     "Quality Tools", icon = shiny::icon("screwdriver-wrench"),
     bslib::nav_panel("Capability analysis", capabilityUI("capability")),
     bslib::nav_panel("Non-normal capability", nonnormalUI("nonnormal")),
+    bslib::nav_panel("Capability sixpack", sixpackUI("sixpack")),
+    bslib::nav_panel("Attribute capability", attrCapUI("attrcap")),
+    bslib::nav_panel("Multivariate capability", mvCapUI("mvcap")),
     bslib::nav_panel("Control charts", controlUI("control")),
     bslib::nav_panel("Multivariate control charts", multivariateUI("multivariate")),
     bslib::nav_panel("Multi-vari chart", multivariUI("multivari")),
@@ -108,6 +128,7 @@ ui <- bslib::page_navbar(
   bslib::nav_menu(
     "MSA", icon = shiny::icon("ruler"),
     bslib::nav_panel("Gage R&R", gageUI("gage")),
+    bslib::nav_panel("Gage R&R (expanded)", gageExpUI("gage_exp")),
     bslib::nav_panel("Gage linearity and bias", gageLinUI("gage_lin")),
     bslib::nav_panel("Type 1 gage study", gageType1UI("gage_t1")),
     bslib::nav_panel("Attribute agreement analysis", agreementUI("agreement"))
@@ -139,6 +160,20 @@ server <- function(input, output, session) {
   taguchiAnalyzeServer("tag_analyze", data)
   gageLinServer("gage_lin", data)
   powerServer("power")
+  equivalenceServer("equivalence", data)
+  toleranceServer("tolerance", data)
+  correlationServer("correlation", data)
+  outlierServer("outliers", data)
+  timeseriesServer("timeseries", data)
+  stepwiseServer("stepwise", data)
+  bestSubsetsServer("bestsub", data)
+  logitServer("logit", data)
+  ordinalServer("ordinal", data)
+  anovaServer("anova", data)
+  sixpackServer("sixpack", data)
+  attrCapServer("attrcap", data)
+  mvCapServer("mvcap", data)
+  gageExpServer("gage_exp", data)
   reliabilityServer("reliability", data)
   samplingServer("sampling", data)
   agreementServer("agreement", data)

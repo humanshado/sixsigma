@@ -14,7 +14,15 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; edit cells and add columns; filter, sort, stack/unstack, recode, change types, rename/delete columns, drop missing values and add calculated columns (safe formulas), with Undo; export the worksheet |
 | **Stat → Basic statistics** | Descriptive statistics (optionally by group), histogram with normal fit, normal probability plot, Anderson-Darling and Shapiro-Wilk tests, confidence interval for the mean |
 | **Stat → Hypothesis tests** | 1-sample, 2-sample (Welch or pooled) and paired t-tests; one-way ANOVA with Tukey comparisons; equal variances (F/Bartlett and Levene); Mann-Whitney and Kruskal-Wallis; 1-proportion (exact) and 2-proportion tests; chi-square test of association. Each shows the hypotheses, a plain-language conclusion and a chart |
-| **Stat → Regression** | Simple, quadratic/cubic and multiple linear regression (numeric and categorical predictors, optional interactions): equation, coefficients with VIF, R-sq/adjusted/predicted R-sq, ANOVA, fitted line plot with confidence and prediction bands, four-in-one residual plots, unusual observations, and predictions for new settings |
+| **Stat → Equivalence tests** | Two one-sided tests (TOST) for 1-sample, 2-sample and paired data, with a confidence-interval plot |
+| **Stat → Tolerance intervals** | Exact normal tolerance intervals (two-sided Odeh-Owen, one-sided noncentral t) and distribution-free intervals |
+| **Stat → Correlation** | Pearson or Spearman correlations with confidence intervals and p-values, correlation heat map and scatterplots |
+| **Stat → Outlier tests** | Grubbs' test and the generalized ESD (Rosner) test for several outliers |
+| **Stat → Time series** | Linear, quadratic and exponential trends, moving average, single and double exponential smoothing, seasonal decomposition, forecasts, accuracy measures and ACF/PACF |
+| **Models → Regression** | Simple, quadratic/cubic and multiple linear regression (numeric and categorical predictors, optional interactions): equation, coefficients with VIF, R-sq/adjusted/predicted R-sq, ANOVA, fitted line plot with confidence and prediction bands, four-in-one residual plots, unusual observations, and predictions for new settings |
+| **Models → Stepwise / Best subsets** | p-value based stepwise (forward, backward, both, with forced terms) and best subsets with R-sq, adjusted R-sq, Mallows' Cp and S |
+| **Models → Binary / Ordinal logistic** | Odds ratios, likelihood-ratio tests, Hosmer-Lemeshow, ROC area and classification table; proportional-odds ordinal regression with predicted probability plots |
+| **Models → General ANOVA** | Crossed and nested, fixed and random factors with covariates; adjusted (Type III) sums of squares; expected mean squares and correct F-test denominators (Satterthwaite when needed); variance components (ANOVA or REML); Tukey comparisons; main effects, interaction and residual plots |
 | **Stat → Sample size and power** | 1-sample, 2-sample and paired t, 1 and 2 proportions, one-way ANOVA and 2-level factorial designs: solve for sample size, power or the detectable difference, with power curves |
 | **Stat → Reliability / life data** | Weibull, lognormal, exponential, log-logistic and normal fits by maximum likelihood with right-censored data and frequencies; distribution comparison, parameters, MTTF and B-lives with confidence intervals, reliability at chosen times, probability plot with confidence band, reliability/hazard/density curves and Kaplan-Meier estimates |
 | **DOE → Create factorial / screening design** | Two-level full and fractional factorial designs for 2 to 8 factors using standard minimum-aberration generators, and Plackett-Burman screening designs (12, 20, 24 runs) for up to 23 factors; replicates, center points, randomized run order; resolution, defining relation and alias structure. The design opens in the worksheet, ready for you to type in results |
@@ -25,9 +33,13 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **DOE → Taguchi designs** | Orthogonal arrays L4, L8, L9, L12, L16, L18, L25, L27 and L32; S/N ratios (larger/smaller/nominal is best), response tables with delta and rank, main effects plots for S/N and means, and the predicted optimum |
 | **Quality Tools → Capability analysis** | Cp, Cpk (within-subgroup sigma from moving ranges or pooled subgroups) and Pp, Ppk (overall), Cpm (Boyles interval) and Cpmk, all with confidence intervals; nonparametric CNp, CNpk, CNpm, CNpmk; Vännman capability plot; expected and observed PPM; the SixSigma capability report |
 | **Quality Tools → Non-normal capability** | Fits normal, lognormal, Weibull, gamma, exponential, logistic and 3-parameter (threshold) lognormal, Weibull and gamma distributions or a Box-Cox transformation; ranks them by AIC and Anderson-Darling statistic, with simulated (parametric bootstrap) goodness-of-fit p-values; percentile-based Pp/Ppk and PPM with histogram and probability plots |
-| **Quality Tools → Control charts** | I-MR, Xbar-R, Xbar-S, P, NP, C, U, EWMA and CUSUM charts; subgroups by size or column; variable sample sizes; limits from the first N points (Phase I/II) or a known mean and sigma; run-rule signals |
+| **Quality Tools → Capability sixpack** | Control charts, last subgroups, capability histogram, normal probability plot and capability plot on one page |
+| **Quality Tools → Attribute capability** | Binomial (% defective, PPM, process Z) and Poisson (DPU) capability with confidence intervals and diagnostic charts |
+| **Quality Tools → Multivariate capability** | Shahriari capability vector (CpM, PV, LI), simulated PPM out of spec, per-variable Cp/Cpk and a process-vs-tolerance region plot |
+| **Quality Tools → Control charts** | I-MR, Xbar-R, Xbar-S, I-MR-R/S (between/within), Z-MR (short runs), P, NP, C, U, Laney P'/U', G and T (rare events), EWMA and CUSUM; all eight Nelson / Western Electric tests; limits from the data, from the first N points or historical values; separate limits per stage |
 | **Quality Tools → Multivariate control charts** | Hotelling T² (individuals or subgroups, Phase I/II limits, variable contributions to each signal), MEWMA and MCUSUM; nonparametric data-depth r, Q and S charts (Mahalanobis or spatial depth) that need no normality assumption |
 | **MSA → Gage R&R** | Crossed or nested studies with variance components, % study variation, number of distinct categories, ANOVA and the six-panel report; generates a randomized study worksheet |
+| **MSA → Gage R&R (expanded)** | Extra random factors (gauge, fixture...), optional interactions and unbalanced studies using REML variance components |
 | **MSA → Gage linearity and bias** | AIAG MSA linearity study: bias regressed on reference values, % linearity, average bias and bias per reference with t-tests |
 | **MSA → Type 1 gage study** | Cg and Cgk from repeated measurements of a reference part, bias test and run chart |
 | **MSA → Attribute agreement analysis** | Within appraiser, each appraiser vs standard, between appraisers and all vs standard, with exact confidence intervals; Fleiss' kappa by response; disagreement counts; Kendall's coefficient of concordance for ordinal ratings |
@@ -53,6 +65,8 @@ Every chart can be downloaded as a PNG image.
 | ![Analyze factorial design](docs/screenshots/doe-analyze.png) | ![One-way ANOVA](docs/screenshots/hypothesis-anova.png) |
 | **Response surface** | **Response optimizer** |
 | ![Response surface](docs/screenshots/rsm.png) | ![Response optimizer](docs/screenshots/optimizer.png) |
+| **Capability sixpack** | **General ANOVA** |
+| ![Capability sixpack](docs/screenshots/sixpack.png) | ![General ANOVA](docs/screenshots/anova.png) |
 | **Reliability / life data** | **Pareto chart** |
 | ![Reliability](docs/screenshots/reliability.png) | ![Pareto chart](docs/screenshots/pareto.png) |
 
@@ -118,6 +132,12 @@ R/power.R           Sample size and power
 R/data_tools.R      Worksheet transformations and safe formulas
 R/fmea.R            FMEA calculations and charts
 R/mod_project.R     Projects and reports
+R/spc_more.R        Laney, G, T, Z-MR, I-MR-R/S charts and stages
+R/capability_more.R Sixpack, between/within, attribute and multivariate capability
+R/regression_more.R Logistic (binary, ordinal), stepwise and best subsets
+R/anova_general.R   General ANOVA, expected mean squares, REML variance components
+R/gage_expanded.R   Expanded Gage R&R
+R/stats_more.R      Tolerance intervals, TOST, correlation, outliers, time series
 R/mod_pareto.R      Pareto chart
 R/mod_tools.R       Loss function, cause-and-effect diagram, yield
 R/utils.R           Shared helpers
@@ -184,6 +204,17 @@ the standard 10-subject, 14-rater example (0.210); sample sizes match R's
 exact search, so they can differ slightly from nomogram-based textbook plans
 (which may miss a stated risk). ANSI/ASQ Z1.4 and ISO 2859 table lookups are
 not included because those tables are copyrighted standards.
+
+### Batch 2 checks
+
+All eight run rules are tested on constructed patterns; general ANOVA matches
+R's `aov` (including error strata for nested random factors) and `drop1`
+adjusted sums of squares; REML and the expanded Gage R&R reproduce
+SixSigma's variance components exactly; logistic and ordinal fits match `glm`
+and `MASS::polr`; stepwise and best subsets reproduce the standard `mtcars`
+results; one-sided tolerance factors match published tables and two-sided
+exact factors are confirmed by simulation; Grubbs and generalized ESD
+reproduce the NIST e-Handbook examples.
 
 ### Features modelled on r6qualitytools
 
