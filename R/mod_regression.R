@@ -62,7 +62,12 @@ regressionServer <- function(id, data) {
     output$anova <- shiny::renderTable(int_cols(reg_anova(model())), digits = 4, na = "")
     output$unusual <- shiny::renderTable({
       u <- reg_unusual(model())
-      if (is.null(u)) data.frame(Result = "No unusual observations.") else u
+      if (is.null(u)) return(data.frame(Result = "No unusual observations."))
+      if (nrow(u) > 100) {
+        u <- u[order(-abs(u$`Std resid`)), ][1:100, ]
+        u$Row <- paste0(u$Row, ifelse(seq_len(100) == 1, sprintf("  (100 most extreme of %d)", nrow(reg_unusual(model()))), ""))
+      }
+      u
     }, digits = 4)
 
     output$fitted_card <- shiny::renderUI({

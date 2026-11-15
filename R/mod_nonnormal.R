@@ -78,6 +78,10 @@ nonnormalServer <- function(id, data) {
     pv <- shiny::reactiveVal(NULL)
     shiny::observeEvent(list(x(), input$round_lambda), pv(NULL))
     shiny::observeEvent(input$pvals, {
+      if (length(stats::na.omit(x())) > 5000)
+        return(shiny::showNotification(paste("With more than 5,000 values, goodness-of-fit tests reject even tiny, unimportant departures,",
+                                             "so p-values are not simulated. Compare the AD statistics and probability plots instead."),
+                                       type = "warning", duration = 10))
       cmp <- comparison(); B <- max(50, min(2000, input$B %||% 200))
       p <- shiny::withProgress(message = "Simulating goodness-of-fit p-values", value = 0, {
         vapply(seq_len(nrow(cmp)), function(i) {

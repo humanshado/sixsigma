@@ -146,3 +146,24 @@ specs_far_from_data <- function(x, ...) {
   span <- diff(range(x)); if (!length(lim) || span <= 0) return(FALSE)
   diff(range(c(x, lim))) > 25 * span
 }
+
+# Evenly spaced rows (always including the first and last) so long results
+# tables and point clouds stay quick to draw. Returns df unchanged if short.
+thin_rows <- function(df, max_rows = 200) {
+  n <- nrow(df)
+  if (is.null(n) || n <= max_rows) return(df)
+  df[unique(round(seq(1, n, length.out = max_rows))), , drop = FALSE]
+}
+
+# Note shown under a table that was shortened with thin_rows().
+thinned_note <- function(n_total, max_rows = 200) if (n_total > max_rows)
+  shiny::helpText(sprintf("Showing %d evenly spaced rows of %s.", max_rows, format(n_total, big.mark = ",")))
+
+# First max_rows rows of a long table, with a last row saying how many more.
+thin_first <- function(df, max_rows = 200, what = "rows") {
+  if (nrow(df) <= max_rows) return(df)
+  extra <- nrow(df) - max_rows
+  out <- df[seq_len(max_rows), , drop = FALSE]
+  out[] <- lapply(out, as.character)
+  rbind(out, stats::setNames(as.data.frame(as.list(c(sprintf("... and %s more %s", format(extra, big.mark = ","), what), rep("", ncol(df) - 1)))), names(df)))
+}

@@ -8,6 +8,8 @@
 spc_d2 <- function(n) unname(SixSigma::ss.cc.getd2(n))
 spc_d3 <- function(n) unname(SixSigma::ss.cc.getd3(n))
 spc_c4 <- function(n) unname(SixSigma::ss.cc.getc4(n))
+# The constants for a vector of subgroup sizes, looked up once per distinct size.
+per_size <- function(n, f) { u <- unique(n); v <- vapply(u, f, numeric(1)); v[match(n, u)] }
 
 # Split a numeric vector into subgroups, either by a grouping vector or by
 # consecutive runs of a fixed size. Returns a list of numeric vectors with
@@ -47,40 +49,49 @@ rule_text <- c("1 point beyond control limits", "9 points on one side of CL", "6
 spc_rules <- function(y, cl, lcl, ucl, k = 3) {
   n <- length(y)
   cl <- rep_len(cl, n); lcl <- rep_len(lcl, n); ucl <- rep_len(ucl, n)
-  viol <- vector("list", n)
-  add <- function(i, r) viol[[i]] <<- sort(unique(c(viol[[i]], r)))
-  for (i in seq_len(n)) {
-    if (is.na(y[i])) next
-    if ((!is.na(ucl[i]) && y[i] > ucl[i]) || (!is.na(lcl[i]) && y[i] < lcl[i])) add(i, 1L)
+  # Collect (point, rule) pairs, then group by point. Everything is
+  # vectorized so long series (100,000+ points) stay fast.
+  hits_i <- list(); hits_r <- list()
+  add <- function(i, r) { i <- i[!is.na(i) & i >= 1 & i <= n]; if (length(i)) { hits_i[[length(hits_i) + 1]] <<- i; hits_r[[length(hits_r) + 1]] <<- rep(r, length(i)) } }
+  add(which((!is.na(ucl) & y > ucl) | (!is.na(lcl) & y < lcl)), 1L)
+  # Length of the current run where cond holds (NA counts as false).
+  run_len <- function(cond) {
+    cond <- !is.na(cond) & cond
+    if (!length(cond)) return(integer(0))
+    grp <- cumsum(!cond)
+    out <- stats::ave(as.integer(cond), grp, FUN = cumsum)
+    as.integer(out)
   }
-  # Consecutive-run helper: length of the current run where cond holds.
-  run_len <- function(cond) { r <- integer(length(cond)); cur <- 0L
-    for (i in seq_along(cond)) { cur <- if (isTRUE(cond[i])) cur + 1L else 0L; r[i] <- cur }; r }
   side <- sign(y - cl)
-  above <- run_len(side > 0); below <- run_len(side < 0)
-  for (i in which(above >= 9 | below >= 9)) add(i, 2L)
+  add(which(run_len(side > 0) >= 9 | run_len(side < 0) >= 9), 2L)
   d <- sign(diff(y))
-  up <- run_len(d > 0); dn <- run_len(d < 0)
-  for (i in which(up >= 5 | dn >= 5)) add(i + 1L, 3L)
+  add(which(run_len(d > 0) >= 5 | run_len(d < 0) >= 5) + 1L, 3L)
   # Zones need a centre line and an upper limit.
   s <- (ucl - cl) / k
-  if (all(is.na(s)) || all(is.na(cl))) return(viol)
+  if (all(is.na(s)) || all(is.na(cl))) return(spc_group_hits(n, hits_i, hits_r))
   z <- (y - cl) / s
-  alt <- integer(length(d)); cur <- 0L
-  for (i in seq_along(d)) {
-    cur <- if (!is.na(d[i]) && d[i] != 0 && i > 1 && !is.na(d[i - 1]) && d[i] == -d[i - 1]) cur + 1L
-           else if (!is.na(d[i]) && d[i] != 0) 1L else 0L
-    alt[i] <- cur
+  # Alternating: each difference has the opposite sign of the previous one.
+  if (length(d) > 1) {
+    flip <- c(FALSE, !is.na(d[-1]) & !is.na(d[-length(d)]) & d[-1] != 0 & d[-1] == -d[-length(d)])
+    alt <- run_len(flip) + (!is.na(d) & d != 0)
+    add(which(alt >= 13) + 1L, 4L)
   }
-  for (i in which(alt >= 13)) add(i + 1L, 4L)
-  win <- function(i, w, cond, m) { if (i < w) return(FALSE); idx <- (i - w + 1):i; sum(cond[idx], na.rm = TRUE) >= m }
-  for (i in seq_len(n)) {
-    if (is.na(z[i])) next
-    if ((z[i] > 2 && win(i, 3, z > 2, 2)) || (z[i] < -2 && win(i, 3, z < -2, 2))) add(i, 5L)
-    if ((z[i] > 1 && win(i, 5, z > 1, 4)) || (z[i] < -1 && win(i, 5, z < -1, 4))) add(i, 6L)
-  }
-  for (i in which(run_len(abs(z) < 1) >= 15)) add(i, 7L)
-  for (i in which(run_len(abs(z) > 1) >= 8)) add(i, 8L)
+  # Rolling count of TRUE over the last w points (window ending at i).
+  roll <- function(cond, w) { cond <- !is.na(cond) & cond; cs <- cumsum(cond); out <- cs - c(rep(0, w), utils::head(cs, -w)); out[seq_len(min(w - 1, n))] <- NA; out }
+  zu2 <- z > 2; zl2 <- z < -2; zu1 <- z > 1; zl1 <- z < -1
+  add(which((zu2 & roll(zu2, 3) >= 2) | (zl2 & roll(zl2, 3) >= 2)), 5L)
+  add(which((zu1 & roll(zu1, 5) >= 4) | (zl1 & roll(zl1, 5) >= 4)), 6L)
+  add(which(run_len(abs(z) < 1) >= 15), 7L)
+  add(which(run_len(abs(z) > 1) >= 8), 8L)
+  spc_group_hits(n, hits_i, hits_r)
+}
+
+spc_group_hits <- function(n, hits_i, hits_r) {
+  viol <- vector("list", n)
+  if (!length(hits_i)) return(viol)
+  i <- unlist(hits_i); r <- unlist(hits_r)
+  sp <- split(r, i)
+  for (k in names(sp)) viol[[as.integer(k)]] <- sort(unique(sp[[k]]))
   viol
 }
 
@@ -142,8 +153,8 @@ spc_xbar_r <- function(sg, k = 3, n_est = NULL, hist = list()) {
   ix <- est_index(length(sg), n_est)
   means <- vapply(sg, mean, numeric(1))
   ranges <- vapply(sg, function(v) diff(range(v)), numeric(1))
-  d2 <- vapply(n, spc_d2, numeric(1))
-  d3 <- vapply(n, spc_d3, numeric(1))
+  d2 <- per_size(n, spc_d2)
+  d3 <- per_size(n, spc_d3)
   sigma <- hist_val(hist, "sigma") %||% mean(ranges[ix] / d2[ix])
   grand <- hist_val(hist, "mu") %||% (sum(means[ix] * n[ix]) / sum(n[ix]))
   rcl <- d2 * sigma
@@ -163,7 +174,7 @@ spc_xbar_s <- function(sg, k = 3, n_est = NULL, hist = list()) {
   ix <- est_index(length(sg), n_est)
   means <- vapply(sg, mean, numeric(1))
   sds <- vapply(sg, sd, numeric(1))
-  c4 <- vapply(n, spc_c4, numeric(1))
+  c4 <- per_size(n, spc_c4)
   sigma <- hist_val(hist, "sigma") %||% mean(sds[ix] / c4[ix])
   grand <- hist_val(hist, "mu") %||% (sum(means[ix] * n[ix]) / sum(n[ix]))
   scl <- c4 * sigma
@@ -232,13 +243,23 @@ plot_chart <- function(ch) {
                    lcl = ch$lcl, ucl = ch$ucl,
                    flag = vapply(ch$violations, length, integer(1)) > 0)
   df <- df[!is.na(df$y), ]
+  # Very long series: draw the min/max envelope of each of ~1500 bins (looks
+  # the same at screen resolution) and only the flagged points.
+  big <- nrow(df) > 5000
+  if (big) {
+    bins <- cut(df$i, 1500, labels = FALSE)
+    lo <- tapply(seq_len(nrow(df)), bins, function(ix) ix[which.min(df$y[ix])])
+    hi <- tapply(seq_len(nrow(df)), bins, function(ix) ix[which.max(df$y[ix])])
+    env <- df[sort(unique(c(lo, hi, nrow(df)))), ]
+    ch$subtitle <- paste0(c(ch$subtitle, sprintf("%s points; out-of-control points are marked", format(nrow(df), big.mark = ","))), collapse = "\n")
+  }
   step_limits <- length(unique(round(stats::na.omit(ch$ucl), 10))) > 1 ||
     length(unique(round(stats::na.omit(ch$lcl), 10))) > 1
   last <- df[nrow(df), ]
   lab <- function(v) if (is.na(v)) "" else formatC(as.numeric(v), digits = 4, format = "g")
   g <- ggplot2::ggplot(df, ggplot2::aes(i, y)) +
-    ggplot2::geom_line(colour = "#4a6fa5") +
-    ggplot2::geom_point(ggplot2::aes(colour = flag), size = 2) +
+    (if (big) ggplot2::geom_line(data = env, colour = "#4a6fa5", linewidth = 0.3) else ggplot2::geom_line(colour = "#4a6fa5")) +
+    ggplot2::geom_point(data = if (big) df[df$flag, ] else df, ggplot2::aes(colour = flag), size = if (big) 1.2 else 2) +
     ggplot2::scale_colour_manual(values = c(`FALSE` = "#4a6fa5", `TRUE` = "#c0392b"), guide = "none") +
     ggplot2::labs(title = ch$title, subtitle = ch$subtitle, x = "Sample", y = ch$ylab) +
     ggplot2::theme_minimal(base_size = 13) +

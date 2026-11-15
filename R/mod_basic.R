@@ -110,15 +110,39 @@ basicServer <- function(id, data) {
       shiny::validate(shiny::need(isTRUE(a > 0 && a < 1), "Confidence level must be between 0 and 100."))
       a
     })
+    # SixSigma::ss.ci runs a Shapiro-Wilk test, which allows at most 5000
+    # values; larger samples get the same t interval computed directly.
     output$ci <- shiny::renderText({
       v <- x()
+      if (sum(!is.na(v)) > 5000) return(ci_mean_text(v, alpha(), input$var))
       validate_run(capture_text(without_plot(
         suppressWarnings(SixSigma::ss.ci(v, alpha = alpha(), xname = input$var)))))
     })
     output$ci_plot <- shiny::renderPlot({
       v <- x()
+      if (sum(!is.na(v)) > 5000) return(print(ci_mean_plot(v, alpha(), input$var)))
       validate_run(invisible(capture_text(
         suppressWarnings(SixSigma::ss.ci(v, alpha = alpha(), xname = input$var)))))
     })
   })
+}
+
+ci_mean_interval <- function(v, alpha) {
+  v <- v[!is.na(v)]; n <- length(v); m <- mean(v); se <- stats::sd(v) / sqrt(n)
+  m + c(-1, 1) * stats::qt(1 - alpha / 2, n - 1) * se
+}
+ci_mean_text <- function(v, alpha, name) {
+  ci <- ci_mean_interval(v, alpha); v <- v[!is.na(v)]
+  sprintf("Mean = %.6g\nStDev = %.6g\nn = %d\n%g%% confidence interval for the mean (t): %.6g to %.6g\n(Large sample: normality is not required for this interval.)",
+          mean(v), stats::sd(v), length(v), 100 * (1 - alpha), ci[1], ci[2])
+}
+ci_mean_plot <- function(v, alpha, name) {
+  ci <- ci_mean_interval(v, alpha); v <- v[!is.na(v)]
+  ggplot2::ggplot(data.frame(x = v), ggplot2::aes(x)) +
+    ggplot2::geom_histogram(bins = 60, fill = "#9ecae1", colour = "white") +
+    ggplot2::annotate("rect", xmin = ci[1], xmax = ci[2], ymin = -Inf, ymax = Inf, alpha = 0.3, fill = "#c0392b") +
+    ggplot2::geom_vline(xintercept = mean(v), colour = "#c0392b") +
+    ggplot2::labs(title = sprintf("%g%% confidence interval for the mean of %s", 100 * (1 - alpha), name),
+                  subtitle = sprintf("%.6g to %.6g (shaded)", ci[1], ci[2]), x = name, y = "Count") +
+    ggplot2::theme_minimal(base_size = 13)
 }

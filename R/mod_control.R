@@ -205,7 +205,8 @@ controlServer <- function(id, data) {
 
     output$signals <- shiny::renderTable({
       v <- violation_table(result()$charts)
-      if (is.null(v)) data.frame(Result = "No out-of-control signals.") else v
+      if (is.null(v)) return(data.frame(Result = "No out-of-control signals."))
+      thin_first(v, 200, "signals")
     })
   })
 }

@@ -95,3 +95,12 @@ test_that("control plan completeness check lists missing items", {
   expect_equal(chk$Row, 3); expect_equal(chk$Missing, "Reaction plan, Owner")
   expect_equal(nrow(control_plan_check(rbind(control_plan_example(), tpl_blank(control_plan_cols, 1)))), 0)  # blank rows ignored
 })
+
+test_that("undo history is capped by memory for large worksheets", {
+  big <- data.frame(x = runif(5e6))   # about 40 MB
+  s <- ws_add(ws_store(), big, "big")
+  for (i in 1:12) s <- ws_change(s, big)
+  n <- length(ws_active(s)$undo)
+  expect_lt(n, 12); expect_gte(n, 1)
+  expect_lte(sum(vapply(ws_active(s)$undo, function(d) as.numeric(object.size(d)), 0)), WS_MAX_UNDO_BYTES)
+})

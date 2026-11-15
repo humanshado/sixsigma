@@ -143,6 +143,8 @@ capabilityServer <- function(id, data) {
       p <- params()
       shiny::validate(shiny::need(!specs_far_from_data(p$x, p$lsl, p$usl, p$target),
         "The specification limits are far outside the data. Check that they belong to this dataset."))
+      shiny::validate(shiny::need(length(stats::na.omit(p$x)) <= 5000,
+        "The SixSigma capability report runs a Shapiro-Wilk test, which allows at most 5,000 values. The indices, PPM and plots on this page use all the data; use Capability sixpack for the graphical summary."))
       SixSigma::ss.study.ca(p$x, xLT = p$lt, LSL = p$lsl, USL = p$usl, Target = p$target,
                             alpha = p$alpha, f.sub = input$subtitle)
     }

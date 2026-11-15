@@ -1,0 +1,6 @@
+.git
+docs/screenshots
+*.Rproj
+.Rhistory
+.RData
+Rplots.pdf

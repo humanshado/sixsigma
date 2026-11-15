@@ -117,7 +117,8 @@ reg_fitted_line <- function(m, conf = 0.95) {
   ggplot2::ggplot() +
     ggplot2::geom_ribbon(data = band, ggplot2::aes(x, ymin = plo, ymax = phi), fill = "#f3d9d6", alpha = 0.7) +
     ggplot2::geom_ribbon(data = band, ggplot2::aes(x, ymin = clo, ymax = chi), fill = "#c9d8ea", alpha = 0.9) +
-    ggplot2::geom_point(data = pts, ggplot2::aes(x, y), colour = "#4a6fa5", size = 2.2) +
+    (if (nrow(pts) > 5000) ggplot2::geom_point(data = pts, ggplot2::aes(x, y), colour = "#4a6fa5", shape = ".", alpha = 0.5)
+     else ggplot2::geom_point(data = pts, ggplot2::aes(x, y), colour = "#4a6fa5", size = 2.2)) +
     ggplot2::geom_line(data = band, ggplot2::aes(x, fit), colour = "#c0392b", linewidth = 1) +
     ggplot2::labs(title = "Fitted line plot", x = x, y = m$y,
                   subtitle = sprintf("%s\nS = %.4g   R-sq = %.1f%%   R-sq(adj) = %.1f%%   (blue = %g%% CI, pink = %g%% PI)",
@@ -130,15 +131,24 @@ reg_fitted_line <- function(m, conf = 0.95) {
 reg_residual_plots <- function(fit) {
   r <- stats::rstandard(fit); f <- stats::fitted(fit)
   d <- data.frame(r = r, f = f, i = seq_along(r))
+  big <- nrow(d) > 5000   # many points: pixel-sized points, thinned Q-Q plot
+  pts <- if (big) ggplot2::geom_point(colour = "#4a6fa5", shape = ".", alpha = 0.6) else ggplot2::geom_point(colour = "#4a6fa5")
   th <- ggplot2::theme_minimal(base_size = 12)
-  p1 <- ggplot2::ggplot(d, ggplot2::aes(sample = r)) + ggplot2::stat_qq(colour = "#4a6fa5") +
+  qq <- if (big) {
+    rs <- sort(r); k <- unique(round(seq(1, length(rs), length.out = 3000)))
+    data.frame(th = stats::qnorm(stats::ppoints(length(rs)))[k], r = rs[k])
+  } else NULL
+  p1 <- if (big) ggplot2::ggplot(qq, ggplot2::aes(th, r)) + ggplot2::geom_point(colour = "#4a6fa5", size = 0.6) +
+    ggplot2::geom_abline(intercept = 0, slope = 1, colour = "#c0392b") +
+    ggplot2::labs(title = "Normal probability plot", x = "Theoretical quantiles", y = "Std. residual") + th
+  else ggplot2::ggplot(d, ggplot2::aes(sample = r)) + ggplot2::stat_qq(colour = "#4a6fa5") +
     ggplot2::stat_qq_line(colour = "#c0392b") + ggplot2::labs(title = "Normal probability plot", x = "Theoretical quantiles", y = "Std. residual") + th
   p2 <- ggplot2::ggplot(d, ggplot2::aes(f, r)) + ggplot2::geom_hline(yintercept = c(-2, 0, 2), linetype = c(3, 2, 3), colour = "grey50") +
-    ggplot2::geom_point(colour = "#4a6fa5") + ggplot2::labs(title = "Versus fits", x = "Fitted value", y = "Std. residual") + th
-  p3 <- ggplot2::ggplot(d, ggplot2::aes(r)) + ggplot2::geom_histogram(bins = max(5, min(20, nrow(d) %/% 3)), fill = "#9bb7d4", colour = "white") +
+    pts + ggplot2::labs(title = "Versus fits", x = "Fitted value", y = "Std. residual") + th
+  p3 <- ggplot2::ggplot(d, ggplot2::aes(r)) + ggplot2::geom_histogram(bins = if (big) 60 else max(5, min(20, nrow(d) %/% 3)), fill = "#9bb7d4", colour = "white") +
     ggplot2::labs(title = "Histogram", x = "Std. residual", y = "Frequency") + th
   p4 <- ggplot2::ggplot(d, ggplot2::aes(i, r)) + ggplot2::geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
-    ggplot2::geom_line(colour = "#9bb7d4") + ggplot2::geom_point(colour = "#4a6fa5") +
+    (if (!big) ggplot2::geom_line(colour = "#9bb7d4")) + pts +
     ggplot2::labs(title = "Versus order", x = "Observation order", y = "Std. residual") + th
   list(p1, p2, p3, p4)
 }

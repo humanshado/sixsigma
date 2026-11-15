@@ -98,7 +98,10 @@ nn_fit <- function(x, dist, round_lambda = FALSE) {
 nn_fit3 <- function(x, dist) {
   base <- sub("3$", "", dist)
   span <- diff(range(x)); if (span == 0) stop("All values are identical.")
-  prof <- function(th) tryCatch(nn_fit(x - th, base)$loglik, error = function(e) -Inf)
+  # Large samples: search the threshold on 5000 evenly spaced order
+  # statistics (same shape, same minimum), then fit all the data once.
+  xs <- if (length(x) > 5000) sort(x)[unique(round(seq(1, length(x), length.out = 5000)))] else x
+  prof <- function(th) tryCatch(nn_fit(xs - th, base)$loglik, error = function(e) -Inf)
   lo <- min(x) - 3 * span; hi <- min(x) - 1e-3 * span
   o <- stats::optimize(prof, c(lo, hi), maximum = TRUE)
   th <- o$maximum

@@ -31,7 +31,7 @@ reliabilityUI <- function(id) {
       bslib::card(shiny::plotOutput(ns("prob"), height = 460)),
       bslib::card(bslib::card_header("Reliability at chosen times"), shiny::tableOutput(ns("rel"))),
       bslib::card(shiny::plotOutput(ns("curves"), height = 380)),
-      bslib::card(bslib::card_header("Kaplan-Meier (nonparametric) estimates"), shiny::tableOutput(ns("km")))
+      bslib::card(bslib::card_header("Kaplan-Meier (nonparametric) estimates"), shiny::tableOutput(ns("km")), shiny::uiOutput(ns("km_note")))
     )
   )
 }
@@ -113,7 +113,9 @@ reliabilityServer <- function(id, data) {
       grid::grid.newpage(); grid::pushViewport(grid::viewport(layout = grid::grid.layout(1, 3)))
       for (i in 1:3) print(g[[i]], vp = grid::viewport(layout.pos.row = 1, layout.pos.col = i))
     })
-    output$km <- shiny::renderTable(int_cols(rel_kaplan_meier(life(), conf())), digits = 5)
+    km_all <- shiny::reactive(rel_kaplan_meier(life(), conf()))
+    output$km <- shiny::renderTable(int_cols(thin_rows(km_all())), digits = 5)
+    output$km_note <- shiny::renderUI(thinned_note(nrow(km_all())))
     output$download <- plot_download("probability-plot", function() rel_probability_plot(fit(), conf()), height = 6)
   })
 }

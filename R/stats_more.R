@@ -116,7 +116,9 @@ scatter_matrix <- function(df, vars) {
   d <- do.call(rbind, lapply(seq_len(ncol(pairs)), function(j) data.frame(x = df[[pairs[1, j]]], y = df[[pairs[2, j]]],
                                                                           panel = paste(pairs[2, j], "vs", pairs[1, j]))))
   d <- d[stats::complete.cases(d), ]
-  ggplot2::ggplot(d, ggplot2::aes(x, y)) + ggplot2::geom_point(colour = "#4a6fa5", alpha = 0.6) +
+  big <- nrow(d) > 5000 * ncol(pairs)
+  ggplot2::ggplot(d, ggplot2::aes(x, y)) +
+    (if (big) ggplot2::geom_point(colour = "#4a6fa5", shape = ".", alpha = 0.5) else ggplot2::geom_point(colour = "#4a6fa5", alpha = 0.6)) +
     ggplot2::geom_smooth(method = "lm", formula = y ~ x, se = FALSE, colour = "#c0392b", linewidth = 0.8) +
     ggplot2::facet_wrap(~panel, scales = "free") + ggplot2::labs(title = "Scatterplots", x = NULL, y = NULL) +
     ggplot2::theme_bw(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))

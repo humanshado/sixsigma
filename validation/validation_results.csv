@@ -1,0 +1,52 @@
+"Area","Reference","Statistic","Published","Computed","Difference","Tolerance","Pass"
+"Regression","NIST StRD Longley (certified)","Intercept",-3482258.63459582,-3482258.63459583,1.39698386192322e-08,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B1",15.0618722713733,15.0618722713757,2.42472708578134e-12,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B2",-0.035819179292591,-0.0358191792925919,9.15933995315754e-16,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B3",-2.02022980381683,-2.02022980381684,6.21724893790088e-15,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B4",-1.03322686717359,-1.03322686717359,1.33226762955019e-15,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B5",-0.0511041056535807,-0.0511041056535754,5.26662047306559e-15,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","B6",1829.15146461355,1829.15146461356,9.77706804405898e-12,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","Residual standard deviation",304.854073561965,304.854073561963,2.27373675443232e-12,"1e-07 relative",TRUE
+"Regression","NIST StRD Longley (certified)","R-squared",0.995479004577296,0.995479004577296,3.33066907387547e-16,"1e-09 relative",TRUE
+"Control charts","Montgomery SQC, Example 6.1 (piston rings)","Grand mean",74.001,74.001176,0.000175999999981968,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 6.1 (piston rings)","Average range",0.023,0.0227600000000001,0.000239999999999893,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 6.1 (piston rings)","Xbar UCL",74.014,74.0143044080436,0.000304408043646731,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 6.1 (piston rings)","Xbar LCL",73.988,73.9880475919563,4.75919563314164e-05,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 6.1 (piston rings)","R UCL",0.048,0.0481260005426107,0.000126000542610666,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 7.1 (orange juice cans)","p-bar",0.2313,0.231333333333333,3.33333333333297e-05,"5e-05",TRUE
+"Control charts","Montgomery SQC, Example 7.1 (orange juice cans)","P chart UCL",0.4102,0.410239118594738,3.91185947384298e-05,"5e-05",TRUE
+"Control charts","Montgomery SQC, Example 7.1 (orange juice cans)","P chart LCL",0.0524,0.0524275480719282,2.75480719282295e-05,"5e-05",TRUE
+"Control charts","Montgomery SQC, Example 9.1 (tabular CUSUM)","C+ at sample 29",5.28,5.28,8.88178419700125e-16,"0.005",TRUE
+"Control charts","Montgomery SQC, Example 9.1 (tabular CUSUM)","C+ at sample 30",5.3,5.3,8.88178419700125e-16,"0.005",TRUE
+"Control charts","Montgomery SQC, Example 9.1 (tabular CUSUM)","First signal (sample)",29,29,0,"0",TRUE
+"Control charts","Montgomery SQC, Example 9.2 (EWMA)","z1",9.945,9.945,0,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 9.2 (EWMA)","z2",9.749,9.7495,0.000499999999998835,"5e-04",TRUE
+"Control charts","Montgomery SQC, Example 9.2 (EWMA)","UCL at sample 1",10.27,10.27,0,"0.005",TRUE
+"Design of experiments","Montgomery DOE, Example 6.2 (filtration rate)","Effect A",21.625,21.625,3.5527136788005e-15,"5e-04",TRUE
+"Design of experiments","Montgomery DOE, Example 6.2 (filtration rate)","Effect C",9.875,9.87500000000001,8.88178419700125e-15,"5e-04",TRUE
+"Design of experiments","Montgomery DOE, Example 6.2 (filtration rate)","Effect D",14.625,14.625,1.06581410364015e-14,"5e-04",TRUE
+"Design of experiments","Montgomery DOE, Example 6.2 (filtration rate)","Effect A*C",-18.125,-18.125,1.06581410364015e-14,"5e-04",TRUE
+"Design of experiments","Montgomery DOE, Example 6.2 (filtration rate)","Effect A*D",16.625,16.625,0,"5e-04",TRUE
+"Design of experiments","Lenth (1989) applied to Example 6.2","Lenth PSE",2.625,2.625,0,"5e-04",TRUE
+"Reliability","Lieblein & Zelen (1956) ball bearings; Lawless (2003)","Weibull shape (MLE)",2.102,2.10205849904114,5.8499041135196e-05,"5e-04",TRUE
+"Reliability","Lieblein & Zelen (1956) ball bearings; Lawless (2003)","Weibull scale (MLE)",81.88,81.8783402553536,0.00165974464638907,"0.005",TRUE
+"Reliability","Nelson (1990) Class-B insulation; Meeker & Escobar (1998)","Lognormal sigma (log10 hours)",0.2592,0.259181541248549,1.8458751451178e-05,"5e-05",TRUE
+"Reliability","Nelson (1990) Class-B insulation; Meeker & Escobar (1998)","Intercept (log10 hours)",-6.02,-6.0182373161906,0.00176268380939693,"0.005",TRUE
+"Reliability","Success-run formula n = ln(1-C)/ln(R)","Units for R = 0.90 at C = 0.90, 0 failures",22,22,0,"0",TRUE
+"Reliability","Binomial (cumulative) test plan tables","Units for R = 0.90 at C = 0.90, 1 failure",38,38,0,"0",TRUE
+"Reliability","Chi-square MTBF test (time-terminated)","Test time / MTBF, 90%, 1 failure",3.89,3.88972016986743,0.000279830132570158,"5e-04",TRUE
+"Statistics","NIST e-Handbook 1.3.5.17 (Grubbs)","Grubbs G",2.4688,2.46876461121245,3.53887875497172e-05,"5e-05",TRUE
+"Statistics","NIST e-Handbook 1.3.5.17.3 (Rosner generalized ESD)","R1",3.119,3.11890604898244,9.39510175581582e-05,"5e-04",TRUE
+"Statistics","NIST e-Handbook 1.3.5.17.3 (Rosner generalized ESD)","R3",3.179,3.17942393671784,0.000423936717836249,"5e-04",TRUE
+"Statistics","NIST e-Handbook 1.3.5.17.3 (Rosner generalized ESD)","Number of outliers",3,3,0,"0",TRUE
+"Statistics","Normal tolerance factor tables (NIST e-Handbook 7.2.6.3; Odeh & Owen)","One-sided k, n = 10, 95% coverage, 95% confidence",2.911,2.91096341308103,3.65869189651313e-05,"5e-04",TRUE
+"Statistics","Normal tolerance factor tables (NIST e-Handbook 7.2.6.3; Odeh & Owen)","One-sided k, n = 20, 90% coverage, 95% confidence",1.926,1.92599097226317,9.02773683431057e-06,"5e-04",TRUE
+"Statistics","Normal tolerance factor tables (NIST e-Handbook 7.2.6.3; Odeh & Owen)","Two-sided k (exact), n = 10, 95% coverage, 95% confidence",3.393,3.39342947871258,0.000429478712578923,"5e-04",TRUE
+"Statistics","Cohen (1988) power tables","Two-sample t: n per group for d = 1, 80% power, alpha 0.05",17,17,0,"0",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.2 (single sampling n = 89, c = 2)","Pa at p = 0.01",0.9397,0.93968991831356,1.00816864404552e-05,"5e-05",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.2 (single sampling n = 89, c = 2)","Pa at p = 0.02",0.7366,0.736577575696672,2.24243033281057e-05,"5e-05",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.2 (single sampling n = 89, c = 2)","Pa at p = 0.03",0.4985,0.498482837938643,1.7162061356768e-05,"5e-05",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.2 (single sampling n = 89, c = 2)","Pa at p = 0.04",0.3042,0.304158359301473,4.16406985269124e-05,"5e-05",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.2 (single sampling n = 89, c = 2)","Pa at p = 0.05",0.1721,0.172076864228735,2.31357712646429e-05,"5e-05",TRUE
+"Acceptance sampling","Montgomery SQC, Section 15.3 (double sampling)","Pa at p = 0.05",0.2904,0.290415482296674,1.54822966739743e-05,"5e-05",TRUE
+"Measurement systems","Fleiss (1971), 10 subjects x 14 raters","Fleiss' kappa",0.21,0.209930704421955,6.92955780447757e-05,"5e-04",TRUE

@@ -1,5 +1,5 @@
 library(ggplot2)
-for (f in c("reliability.R", "sampling.R", "agreement.R", "power.R", "data_tools.R", "fmea.R", "capability_nonnormal.R"))
+for (f in c("utils.R", "reliability.R", "sampling.R", "agreement.R", "power.R", "data_tools.R", "fmea.R", "capability_nonnormal.R"))
   source(file.path("..", "..", "R", f), local = TRUE)
 
 bearings <- c(17.88, 28.92, 33.00, 41.52, 42.12, 45.60, 48.48, 51.84, 51.96, 54.12, 55.56, 67.80, 68.64, 68.64,

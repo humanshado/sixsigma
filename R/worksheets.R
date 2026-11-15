@@ -4,6 +4,15 @@
 
 WS_MAX_SHEETS <- 30
 WS_MAX_UNDO <- 30
+WS_MAX_UNDO_BYTES <- 300 * 1024^2   # large worksheets keep fewer undo steps
+
+# Keep the newest history entries that fit both limits (at least one).
+ws_trim <- function(h) {
+  h <- utils::head(h, WS_MAX_UNDO)
+  if (length(h) <= 1) return(h)
+  sz <- cumsum(vapply(h, function(d) as.numeric(utils::object.size(d)), numeric(1)))
+  h[seq_len(max(1, sum(sz <= WS_MAX_UNDO_BYTES)))]
+}
 
 ws_store <- function() list(sheets = list(), active = NULL, next_id = 1L)
 
@@ -39,7 +48,7 @@ ws_load <- function(store, df, name) {
 
 ws_change <- function(store, df) {
   a <- ws_active(store); if (is.null(a)) stop("No worksheet is open.")
-  a$undo <- utils::head(c(list(a$df), a$undo), WS_MAX_UNDO)
+  a$undo <- ws_trim(c(list(a$df), a$undo))
   a$redo <- list(); a$df <- df; a$pristine <- FALSE
   store$sheets[[a$id]] <- a
   store
@@ -47,7 +56,7 @@ ws_change <- function(store, df) {
 
 ws_undo <- function(store) {
   a <- ws_active(store); if (is.null(a) || !length(a$undo)) stop("Nothing to undo.")
-  a$redo <- utils::head(c(list(a$df), a$redo), WS_MAX_UNDO)
+  a$redo <- ws_trim(c(list(a$df), a$redo))
   a$df <- a$undo[[1]]; a$undo <- a$undo[-1]
   store$sheets[[a$id]] <- a
   store
@@ -55,7 +64,7 @@ ws_undo <- function(store) {
 
 ws_redo <- function(store) {
   a <- ws_active(store); if (is.null(a) || !length(a$redo)) stop("Nothing to redo.")
-  a$undo <- utils::head(c(list(a$df), a$undo), WS_MAX_UNDO)
+  a$undo <- ws_trim(c(list(a$df), a$undo))
   a$df <- a$redo[[1]]; a$redo <- a$redo[-1]
   store$sheets[[a$id]] <- a
   store

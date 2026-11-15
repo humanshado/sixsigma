@@ -11,59 +11,64 @@ library(bslib)
 library(ggplot2)
 library(SixSigma)
 
+# Allow uploads of large worksheets (Shiny's default limit is 5 MB).
+options(shiny.maxRequestSize = 200 * 1024^2)
+
 about_page <- function() {
-  bslib::card(
-    bslib::card_header("About Six Sigma Studio"),
-    shiny::markdown("
-A graphical interface for quality engineering, built on the open-source
-[SixSigma](https://cran.r-project.org/package=SixSigma) R package by Emilio L. Cano
-and co-authors. No R knowledge is needed to use it.
+  bslib::layout_columns(
+    col_widths = c(7, 5),
+    bslib::card(
+      bslib::card_header(shiny::icon("circle-question"), "Getting started"),
+      shiny::markdown("
+**Six Sigma Studio** is a point-and-click tool for quality engineering, built on the
+open-source [SixSigma](https://cran.r-project.org/package=SixSigma) R package. No R
+knowledge is needed.
 
-**How to use it**
+1. **Get data.** Open **Data** and pick a sample dataset, upload a CSV or Excel file, or
+   paste columns copied from a spreadsheet. Several worksheets can be open; the one
+   selected in the worksheet bar is used by every analysis.
+2. **Run an analysis.** Choose a screen from **Stat**, **Models**, **DOE**,
+   **Quality Tools**, **Reliability** or **MSA**, then pick columns and options in the
+   left-hand panel. Results update immediately.
+3. **Get help.** Click **Help** in the top bar on any screen for what it does, the data it
+   needs and how to read the results.
+4. **Keep your work.** Click **Add page to report** to capture the current results, and
+   use **Project & report** to save everything (worksheets, FMEA, DMAIC templates and
+   settings) to one file and to download the report as HTML or Word.
 
-1. Open **Data** and pick a sample dataset, upload a CSV/Excel file, or paste
-   columns copied from a spreadsheet. The active worksheet is used by every analysis.
-   Double-click a cell to edit it, or add new columns.
-2. Choose an analysis from the **Stat** or **Quality Tools** menus and select columns
-   and options in the left-hand panel. Results update immediately.
-3. Use the download buttons to save charts as PNG images.
+**DMAIC roadmap**
 
-**Analyses**
+| Phase | Screens |
+|---|---|
+| Define | Project charter, SIPOC, Value stream map, Pareto chart |
+| Measure | Data, Basic statistics, Gage R&R, Attribute agreement, Capability analysis |
+| Analyze | Hypothesis tests, Regression, General ANOVA, Multi-vari, Cause-and-effect, 5 Whys, FMEA |
+| Improve | DOE menu, Response optimizer, Tolerance stack-up, Monte Carlo simulation |
+| Control | Control charts, Control plan, A3 report, Acceptance sampling |
 
-| Menu | Analysis | Engine |
-|---|---|---|
-| Stat | Descriptive statistics, normality tests, confidence interval | base R, nortest, `ss.ci` |
-| Stat | Hypothesis tests: 1-sample, 2-sample and paired t, one-way ANOVA with Tukey, equal variances, Mann-Whitney / Kruskal-Wallis, 1 and 2 proportions, chi-square | base R `stats` |
-| Stat | Regression: simple, polynomial and multiple linear regression with fitted line plot, residual plots, unusual observations and prediction | base R `lm` |
-| DOE | Create 2-level full and fractional factorial designs (up to 8 factors) with replicates, center points, randomization and alias structure | built in |
-| DOE | Analyze factorial designs: effects, Pareto and normal plots of effects, main effects and interaction plots, curvature test, Lenth's method for unreplicated designs | base R `lm` |
-| Quality Tools | Capability analysis: Cp/Cpk (within) and Pp/Ppk (overall), Cpm, Cpmk, nonparametric CNp-CNpmk, Vannman capability plot, PPM | `ss.study.ca`, qcr methods |
-| Quality Tools | Non-normal capability: fitted lognormal, Weibull, gamma, exponential, logistic or Box-Cox, percentile indices | MASS, qcr methods |
-| Quality Tools | Control charts: I-MR, Xbar-R, Xbar-S, P, NP, C, U, EWMA, CUSUM | Shewhart formulas with SixSigma constants; qcr methods |
-| Quality Tools | Multivariate control charts: Hotelling T², MEWMA, MCUSUM; nonparametric depth r, Q, S charts | qcr methods |
-| Quality Tools | Gage R&R (crossed or nested) | `ss.rr` |
-| DOE | Plackett-Burman screening designs; response surface designs (central composite, Box-Behnken) with contour/surface plots, stationary point and steepest ascent; desirability response optimizer; mixture designs (simplex lattice/centroid, Scheffe models, ternary plots); Taguchi orthogonal arrays with S/N analysis | built in |
-| Quality Tools | Gage R&R worksheet generator, gage linearity and bias, type 1 gage study (Cg, Cgk), multi-vari chart | built in |
-| Stat | Sample size and power (t-tests, proportions, ANOVA, factorial designs); reliability / life data analysis with censoring (Weibull, lognormal, exponential, log-logistic, normal; B-lives, MTTF, Kaplan-Meier) | built in |
-| Quality Tools | FMEA worksheet (RPN, risk matrix, actions); acceptance sampling plans (single, double, variables; OC, AOQ, ATI) | built in |
-| MSA | Attribute agreement analysis (percent agreement, Fleiss' kappa, Kendall's W) | built in |
-| Stat | Equivalence tests (TOST), tolerance intervals (exact normal and nonparametric), correlation, outlier tests (Grubbs, generalized ESD), time series (trends, smoothing, decomposition, autocorrelation) | built in |
-| Models | Regression, stepwise and best subsets regression, binary and ordinal logistic regression, general ANOVA with fixed/random, crossed/nested factors and covariates | base R, MASS, nlme |
-| Quality Tools | Control charts also include Laney P'/U', G, T, Z-MR and I-MR-R/S charts, all eight Nelson tests, historical limits and stages; capability sixpack, between/within, attribute and multivariate capability | built in |
-| MSA | Expanded Gage R&R with extra factors and unbalanced data (REML) | nlme |
-| Project & report | Save and open projects; add any page to a report and download it as HTML or Word | built in |
-| Quality Tools | Taguchi loss function | `ss.lfa` |
-| Quality Tools | Cause-and-effect diagram | `ss.ceDiag` |
-| Quality Tools | Pareto chart with cumulative percentage and 'Other' grouping | ggplot2 |
-| Quality Tools | Process yield (FTY, RTY, DPMO) | `ss.ca.yield` |
+**Good to know**
+
+- Double-click a worksheet cell to edit it; click elsewhere to commit. Undo and Redo work per worksheet.
+- Every chart has a download button (PNG).
+- Very long series (over 5,000 points) are drawn as an envelope with flagged points marked; long tables show a sample of rows. All calculations use all the data.
+")),
+    shiny::tagList(
+      bslib::card(bslib::card_header(shiny::icon("book"), "Look up a screen"),
+        shiny::selectInput("help_topic", NULL, choices = names(help_topics), selected = "Capability analysis", width = "100%"),
+        shiny::uiOutput("help_topic_body")),
+      bslib::card(bslib::card_header(shiny::icon("circle-info"), "About"),
+        shiny::markdown(sprintf("
+**Version %s.** See the *Validation* section of the README (and `validation/`) for the
+checks against published reference results.
 
 Several features follow the r6qualitytools package (Encarnacion, Barahona, Flores et al.),
 implemented here from the published methods. Several methods and example datasets are adapted from the
 [qcr](https://github.com/mflores72000/qcr) package by Miguel Flores, Rubén
-Fernández-Casal, Salvador Naya and Javier Tarrío-Saavedra.
+Fernández-Casal, Salvador Naya and Javier Tarrío-Saavedra. Built on
+[SixSigma](https://cran.r-project.org/package=SixSigma) by Emilio L. Cano, Javier M. Moguerza and Mario Prieto Corcoba.
 
 Licensed under the GPL (version 2 or later), like the SixSigma and qcr packages.
-")
+", APP_VERSION))))
   )
 }
 
@@ -73,7 +78,7 @@ ui <- bslib::page_navbar(
   theme = bslib::bs_add_rules(bslib::bs_theme(version = 5, bootswatch = "flatly"),
                              ".shiny-html-output { overflow-x: auto; } pre { white-space: pre-wrap; word-break: break-word; }"),
   fillable = FALSE,
-  header = shiny::tags$head(shiny::tags$script(shiny::HTML(report_capture_js))),
+  header = shiny::tags$head(shiny::tags$script(shiny::HTML(report_capture_js)), shiny::tags$script(shiny::HTML(help_js))),
   bslib::nav_panel("Data", icon = shiny::icon("table"), dataUI("data")),
   bslib::nav_menu(
     "Stat", icon = shiny::icon("chart-column"),
@@ -155,13 +160,20 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Attribute agreement analysis", agreementUI("agreement"))
   ),
   bslib::nav_spacer(),
+  bslib::nav_item(shiny::tags$a(id = "help_btn", href = "#", class = "nav-link", shiny::icon("circle-question"), " Help")),
   bslib::nav_item(shiny::tags$a(id = "add_to_report", href = "#", class = "nav-link", shiny::icon("file-circle-plus"),
                                 " Add page to report")),
   bslib::nav_panel("Project & report", icon = shiny::icon("folder-open"), projectUI("proj")),
-  bslib::nav_panel("About", icon = shiny::icon("circle-info"), about_page())
+  bslib::nav_panel("Help & About", icon = shiny::icon("circle-info"), about_page())
 )
 
 server <- function(input, output, session) {
+  shiny::observeEvent(input$help_request, {
+    t <- input$help_request
+    if (t %in% c("Help & About", "")) t <- "Data"
+    shiny::showModal(help_modal(t))
+  })
+  output$help_topic_body <- shiny::renderUI(help_body(input$help_topic))
   created_design <- shiny::reactiveVal(NULL)
   worksheets <- dataServer("data", injected = created_design)
   data <- worksheets$data

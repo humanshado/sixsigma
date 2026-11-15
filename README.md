@@ -91,26 +91,57 @@ report" captures the formatted charter, diagram or plan, not the editing boxes.
 
 ## Running it
 
+### On your computer
+
 1. Install [R](https://cran.r-project.org/) (version 4.1 or later).
-2. Install the required packages (once, and again after updating the app). The
-   script also upgrades packages that are too old, such as bslib versions
-   before 0.5:
+2. Double-click the launcher for your system in this folder:
+   - Windows: `start-windows.bat`
+   - macOS: `start-mac.command` (the first time, right-click it and choose **Open**)
+   - Linux: `./start-linux.sh`
 
-   ```bash
-   Rscript install.R
-   ```
+   The first start installs the R packages the app needs (a few minutes); later
+   starts take seconds. The app opens in your web browser; close the terminal
+   window to stop it.
 
-3. Start the app from this folder:
+You can also start it by hand:
 
-   ```bash
-   Rscript -e 'shiny::runApp(".", launch.browser = TRUE)'
-   ```
+```bash
+Rscript install.R
+```
 
-   It opens in your web browser. In RStudio you can instead open `app.R` and
-   click **Run App**.
+```bash
+Rscript -e 'shiny::runApp(".", launch.browser = TRUE)'
+```
 
-   If the app reports that packages are outdated, close any running R or
-   RStudio sessions, run `Rscript install.R` again, and restart.
+In RStudio, open `app.R` and click **Run App**. If the app reports that
+packages are outdated, close any running R sessions, run `Rscript install.R`
+again, and restart.
+
+### On a server
+
+See [DEPLOY.md](DEPLOY.md) for Docker, Shiny Server, Posit Connect and
+shinyapps.io.
+
+## Validation
+
+`Rscript validation/run_validation.R` reruns 51 checks against published
+reference results - NIST certified regression values (Longley), Montgomery's
+control chart, CUSUM, EWMA, sampling and DOE examples, NIST e-Handbook outlier
+and tolerance-interval examples, Nelson's accelerated life data, the
+ball-bearing Weibull fit and Fleiss' kappa - and writes
+[validation/VALIDATION.md](validation/VALIDATION.md). The input data are in
+`validation/datasets/`, so the same checks can be repeated in Minitab, JMP or
+any other package. The unit tests (`tests/testthat`, about 1,400 checks) also
+compare methods with R's reference implementations.
+
+## Large worksheets
+
+Worksheets of 100,000+ rows work: uploads up to 200 MB, the table pages on
+the server, and long control charts and residual plots are drawn as envelopes
+or pixel points (all calculations use all the data). Undo history is capped at
+300 MB per worksheet. Shapiro-Wilk tests and SixSigma's capability report are
+limited to 5,000 values by their methods; the app says so and uses other
+methods for larger samples.
 
 ## Project layout
 
@@ -170,6 +201,9 @@ R/stats_more.R      Tolerance intervals, TOST, correlation, outliers, time serie
 R/mod_pareto.R      Pareto chart
 R/mod_tools.R       Loss function, cause-and-effect diagram, yield
 R/utils.R           Shared helpers
+R/help.R            In-app help for every screen
+validation/         Validation checks, report and reference datasets
+launch.R, start-*   Launchers; Dockerfile and DEPLOY.md for servers
 tests/testthat/     Unit tests for every calculation module
 ```
 

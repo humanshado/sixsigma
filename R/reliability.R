@@ -58,9 +58,8 @@ rel_fit <- function(d, dist = "weibull") {
   # Heavily censored data (e.g. warranty returns) need a start near the
   # probability-plot line: a least-squares fit to Kaplan-Meier estimates.
   km_start <- tryCatch({
-    tt <- sort(unique(y[d$f])); atrisk <- vapply(tt, function(v) sum(d$w[y >= v]), 0)
-    dead <- vapply(tt, function(v) sum(d$w[y == v & d$f]), 0)
-    Fk <- 1 - cumprod(1 - dead / atrisk); ok <- Fk > 0 & Fk < 1
+    k <- km_counts(y, d$f, d$w); tt <- k$time
+    Fk <- 1 - cumprod(1 - k$fails / k$at_risk); ok <- Fk > 0 & Fk < 1
     if (sum(ok) >= 2) { cf <- stats::coef(stats::lm(tt[ok] ~ std$q(Fk[ok]))); unname(c(cf[1], log(max(cf[2], 1e-3)))) } else NULL
   }, error = function(e) NULL)
   o <- stats::optim(start, nll, method = "BFGS", hessian = TRUE, control = list(maxit = 1000, reltol = 1e-12))
@@ -179,17 +178,22 @@ rel_plot_positions <- function(d) {
 # Kaplan-Meier estimate with Greenwood confidence limits.
 rel_kaplan_meier <- function(d, conf = 0.95) {
   z <- stats::qnorm(1 - (1 - conf) / 2)
-  times <- sort(unique(d$t[d$f]))
-  n_tot <- sum(d$w); S <- 1; gw <- 0
-  rows <- lapply(times, function(tt) {
-    at_risk <- sum(d$w[d$t >= tt]); fails <- sum(d$w[d$t == tt & d$f])
-    S <<- S * (1 - fails / at_risk)
-    if (at_risk > fails) gw <<- gw + fails / (at_risk * (at_risk - fails))
-    se <- S * sqrt(gw)
-    data.frame(Time = tt, `At risk` = at_risk, Failures = fails, Reliability = S,
-               `CI lower` = max(0, S - z * se), `CI upper` = min(1, S + z * se), check.names = FALSE)
-  })
-  do.call(rbind, rows)
+  k <- km_counts(d$t, d$f, d$w)
+  S <- cumprod(1 - k$fails / k$at_risk)
+  term <- ifelse(k$at_risk > k$fails, k$fails / (k$at_risk * (k$at_risk - k$fails)), 0)
+  se <- S * sqrt(cumsum(term))
+  data.frame(Time = k$time, `At risk` = k$at_risk, Failures = k$fails, Reliability = S,
+             `CI lower` = pmax(0, S - z * se), `CI upper` = pmin(1, S + z * se), check.names = FALSE)
+}
+
+# Units at risk and failures at each distinct failure time (vectorized).
+km_counts <- function(t, f, w = rep(1, length(t))) {
+  times <- sort(unique(t[f]))
+  if (!length(times)) return(data.frame(time = numeric(0), at_risk = numeric(0), fails = numeric(0)))
+  ot <- order(t); ts <- t[ot]; cw <- rev(cumsum(rev(w[ot])))       # weight with time >= ts[i]
+  at_risk <- cw[findInterval(times, ts, left.open = TRUE) + 1]
+  fails <- tapply(w[f], factor(t[f], levels = times), sum)
+  data.frame(time = times, at_risk = at_risk, fails = as.numeric(fails))
 }
 
 rel_compare <- function(d) {
@@ -207,7 +211,7 @@ rel_compare <- function(d) {
 
 # Probability plot on the distribution's linearizing scales.
 rel_probability_plot <- function(f, conf = 0.95) {
-  pp <- rel_plot_positions(f$data)
+  pp <- thin_rows(rel_plot_positions(f$data), 3000)
   tr <- if (f$log) log else identity
   pp$x <- tr(pp$t); pp$y <- f$std$q(pp$F)
   ps <- c(0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99, 0.999)
@@ -239,7 +243,7 @@ rel_curves_plot <- function(f, conf = 0.95) {
   tmax <- max(f$data$t) * 1.2
   tt <- seq(if (f$log) tmax / 400 else min(0, min(f$data$t)), tmax, length.out = 300)
   r <- rel_reliability(f, tt, conf)
-  km <- rel_kaplan_meier(f$data, conf)
+  km <- thin_rows(rel_kaplan_meier(f$data, conf), 3000)
   h <- data.frame(Time = tt, h = rel_hazard(f, tt))
   y <- if (f$log) log(tt) else tt
   dens <- data.frame(Time = tt, d = f$std$d((y - f$mu) / f$sigma) / (f$sigma * (if (f$log) tt else 1)))
