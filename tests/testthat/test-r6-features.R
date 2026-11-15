@@ -1,5 +1,5 @@
 library(ggplot2)
-for (f in c("doe.R", "designs_extra.R", "rsm.R", "desirability.R", "taguchi_mixture.R", "msa_extra.R",
+for (f in c("doe.R", "designs_extra.R", "designs_more.R", "rsm.R", "desirability.R", "taguchi_mixture.R", "msa_extra.R",
             "capability_nonnormal.R"))
   source(file.path("..", "..", "R", f), local = TRUE)
 

@@ -1,6 +1,7 @@
 library(ggplot2)
 source(file.path("..", "..", "R", "regression.R"), local = TRUE)
 source(file.path("..", "..", "R", "doe.R"), local = TRUE)
+source(file.path("..", "..", "R", "designs_more.R"), local = TRUE)
 
 st <- SixSigma::ss.data.strings
 

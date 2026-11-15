@@ -138,6 +138,15 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Demonstration test planning", demoUI("demo"))
   ),
   bslib::nav_menu(
+    "DMAIC", icon = shiny::icon("diagram-project"),
+    bslib::nav_panel("Project charter", charterUI("dmaic")),
+    bslib::nav_panel("SIPOC", sipocUI("dmaic")),
+    bslib::nav_panel("5 Whys", whysUI("dmaic")),
+    bslib::nav_panel("Value stream map", vsmUI("dmaic")),
+    bslib::nav_panel("Control plan", controlPlanUI("dmaic")),
+    bslib::nav_panel("A3 report", a3UI("dmaic"))
+  ),
+  bslib::nav_menu(
     "MSA", icon = shiny::icon("ruler"),
     bslib::nav_panel("Gage R&R", gageUI("gage")),
     bslib::nav_panel("Gage R&R (expanded)", gageExpUI("gage_exp")),
@@ -154,11 +163,13 @@ ui <- bslib::page_navbar(
 
 server <- function(input, output, session) {
   created_design <- shiny::reactiveVal(NULL)
-  data <- dataServer("data", injected = created_design)
+  worksheets <- dataServer("data", injected = created_design)
+  data <- worksheets$data
   basicServer("basic", data)
   hypothesisServer("hypothesis", data)
   regressionServer("regression", data)
   send_to_worksheet <- function(design) {
+    design$nonce <- stats::runif(1)  # open a new worksheet even if the same design is created twice
     created_design(design)
     bslib::nav_select("nav", "Data", session = session)
   }
@@ -196,7 +207,8 @@ server <- function(input, output, session) {
   samplingServer("sampling", data)
   agreementServer("agreement", data)
   fmea <- fmeaServer("fmea")
-  projectServer("proj", input, session, data, send_to_worksheet, fmea)
+  templates <- dmaicServer("dmaic")
+  projectServer("proj", input, session, worksheets, fmea, templates)
   gageType1Server("gage_t1", data)
   multivariServer("multivari", data)
   doeAnalyzeServer("doe_analyze", data)

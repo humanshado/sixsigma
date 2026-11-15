@@ -45,6 +45,7 @@ $(document).on('click', '#add_to_report', function(e) {
   });
   var main = pane.find('.bslib-sidebar-layout > .main').first().clone();
   if (!main.length) main = pane.clone();
+  main.find('.no-report').remove();
   main.find('button, .btn, input, select, textarea, .selectize-control, .shiny-download-link, script').remove();
   main.find('.recalculating').removeClass('recalculating');
   main.find('img').each(function() { $(this).css({'max-width': '100%', 'height': 'auto'}); });
@@ -59,7 +60,7 @@ projectUI <- function(id) {
     col_widths = c(4, 8),
     shiny::tagList(
       bslib::card(bslib::card_header("Project"),
-        shiny::helpText("A project file holds the worksheet, the FMEA and the settings of every screen."),
+        shiny::helpText("A project file holds all worksheets, the FMEA, the DMAIC templates and the settings of every screen."),
         shiny::textInput(ns("proj_name"), "Project name", "My project"),
         shiny::downloadButton(ns("save"), "Save project"),
         shiny::tags$hr(),
@@ -88,7 +89,7 @@ project_inputs <- function(vals) {
   keep
 }
 
-projectServer <- function(id, root_input, root_session, data, set_worksheet, fmea) {
+projectServer <- function(id, root_input, root_session, worksheets, fmea, templates = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     items <- shiny::reactiveVal(list())
 
@@ -97,9 +98,10 @@ projectServer <- function(id, root_input, root_session, data, set_worksheet, fme
       filename = function() paste0(gsub("[^A-Za-z0-9_.-]+", "_", input$proj_name %||% "project"), ".rds"),
       content = function(file) {
         vals <- shiny::isolate(shiny::reactiveValuesToList(root_input))
-        saveRDS(list(format = "Six Sigma Studio project", version = 1, saved = Sys.time(), name = input$proj_name,
-                     worksheet = list(name = input$proj_name, df = shiny::isolate(data())),
-                     fmea = shiny::isolate(fmea$get()), inputs = project_inputs(vals),
+        saveRDS(list(format = "Six Sigma Studio project", version = 2, saved = Sys.time(), name = input$proj_name,
+                     worksheets = worksheets$get(),
+                     fmea = shiny::isolate(fmea$get()), templates = if (!is.null(templates)) templates$get(),
+                     inputs = project_inputs(vals),
                      report = list(title = input$rep_title, author = input$rep_author, intro = input$rep_intro,
                                    items = shiny::isolate(items()))), file)
       })
@@ -119,6 +121,7 @@ projectServer <- function(id, root_input, root_session, data, set_worksheet, fme
         items(p$report$items %||% list())
       }
       if (!is.null(p$fmea)) fmea$set(p$fmea)
+      if (!is.null(p$templates) && !is.null(templates)) templates$set(p$templates)
       vals <- p$inputs %||% list()
       vals <- vals[!grepl("^data-", names(vals))]
       vals <- lapply(vals, function(v) if (is.numeric(v) && length(v) == 1 && is.na(v)) "" else v)
@@ -126,10 +129,12 @@ projectServer <- function(id, root_input, root_session, data, set_worksheet, fme
       # Settings are re-sent after the worksheet has loaded and again a moment
       # later, so column choices exist before they are selected.
       root_session$onFlushed(function() { send(); later::later(send, 1.5); later::later(send, 4) }, once = TRUE)
-      set_worksheet(list(name = p$name %||% "Project", df = p$worksheet$df))
+      # Version 1 projects held a single worksheet.
+      ws <- p$worksheets %||% list(active = p$name, sheets = list(list(name = p$name %||% "Project", df = p$worksheet$df)))
+      worksheets$set(ws)
       open_msg(shiny::div(class = "alert alert-success",
-                          sprintf("Opened '%s' (saved %s): %d rows of data, %d report items.", p$name %||% "project",
-                                  format(p$saved, "%Y-%m-%d %H:%M"), nrow(p$worksheet$df), length(items()))))
+                          sprintf("Opened '%s' (saved %s): %d worksheet(s), %d report items.", p$name %||% "project",
+                                  format(p$saved, "%Y-%m-%d %H:%M"), length(ws$sheets), length(items()))))
     })
 
     # ---- Report ----

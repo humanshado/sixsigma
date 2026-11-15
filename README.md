@@ -11,7 +11,7 @@ so you can run Six Sigma analyses **without writing any R code**.
 
 | Menu | Analysis |
 |---|---|
-| **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; edit cells and add columns; filter, sort, stack/unstack, recode, change types, rename/delete columns, drop missing values and add calculated columns (safe formulas), with Undo; export the worksheet |
+| **Data** | Several worksheets open at once (new, duplicate, rename, close, switch); load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet (new data replaces an untouched worksheet, otherwise opens a new one, and designs always open in a new one); edit cells and add columns; filter, sort, stack/unstack, recode, change types, rename/delete columns, drop missing values, add calculated columns (safe formulas), append rows or join columns from another worksheet; Undo and Redo per worksheet; export the worksheet |
 | **Stat → Basic statistics** | Descriptive statistics (optionally by group), histogram with normal fit, normal probability plot, Anderson-Darling and Shapiro-Wilk tests, confidence interval for the mean |
 | **Stat → Hypothesis tests** | 1-sample, 2-sample (Welch or pooled) and paired t-tests; one-way ANOVA with Tukey comparisons; equal variances (F/Bartlett and Levene); Mann-Whitney and Kruskal-Wallis; 1-proportion (exact) and 2-proportion tests; chi-square test of association. Each shows the hypotheses, a plain-language conclusion and a chart |
 | **Stat → Equivalence tests** | Two one-sided tests (TOST) for 1-sample, 2-sample and paired data, with a confidence-interval plot |
@@ -58,9 +58,16 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **Quality Tools → Process yield** | Yield, first-time yield, rolled throughput yield, DPMO and sigma level |
 | **Quality Tools → FMEA** | Editable FMEA worksheet (severity, occurrence, detection, actions and revised ratings), RPN and criticality, prioritized list, RPN Pareto chart and risk matrix, CSV import/export |
 | **Quality Tools → Acceptance sampling** | Design single sampling plans from AQL/LTPD and risks; evaluate single and double plans (binomial, hypergeometric, Poisson) with OC, AOQ/AOQL, ATI and ASN curves; variables (k-method) plans with a lot accept/reject decision |
-| **Project & report** | Save the worksheet, FMEA and every screen's settings to a project file and reopen it; add any page to a report with one click and download it as HTML (printable to PDF) or Word |
+| **DMAIC → Project charter** | Business case, problem and goal statements, scope, benefits, metrics with baseline and target, team and milestones, with a formatted charter and a timeline showing on-time, late and overdue phases |
+| **DMAIC → SIPOC** | Suppliers, inputs, process steps, outputs and customers table with a SIPOC diagram |
+| **DMAIC → 5 Whys** | Problem, up to six whys, root cause and countermeasure, drawn as a cause chain |
+| **DMAIC → Value stream map** | Process steps with cycle time, changeover, uptime, operators and inventory; takt time, production lead time, value-added time and process cycle efficiency; a current-state map with timeline and a line-balance chart against takt |
+| **DMAIC → Control plan** | AIAG-style control plan (characteristic, specification, measurement, sample size, frequency, control method, reaction plan, owner) with a completeness check |
+| **DMAIC → A3 report** | Seven-section A3 (background to follow-up) with an implementation plan; can be filled from the charter and 5 Whys |
+| **Project & report** | Save all worksheets, the FMEA, the DMAIC templates and every screen's settings to a project file and reopen it; add any page to a report with one click and download it as HTML (printable to PDF) or Word |
 
-Every chart can be downloaded as a PNG image.
+Every chart can be downloaded as a PNG image. On the DMAIC screens, "Add page to
+report" captures the formatted charter, diagram or plan, not the editing boxes.
 
 | Control charts | Gage R&R |
 |---|---|
@@ -79,6 +86,8 @@ Every chart can be downloaded as a PNG image.
 | ![Reliability](docs/screenshots/reliability.png) | ![Pareto chart](docs/screenshots/pareto.png) |
 | **Accelerated life testing** | **Tolerance stack-up** |
 | ![Accelerated life testing](docs/screenshots/accelerated-life.png) | ![Tolerance stack-up](docs/screenshots/stackup.png) |
+| **Value stream map** | **A3 report** |
+| ![Value stream map](docs/screenshots/value-stream.png) | ![A3 report](docs/screenshots/a3-report.png) |
 
 ## Running it
 
@@ -142,6 +151,9 @@ R/designs_more.R    Blocking, general full factorial, split-plot, definitive scr
                     D-optimal and extreme-vertices mixture designs
 R/mod_designs_more.R Screens for the new designs
 R/simulation.R      Tolerance stack-up and Monte Carlo simulation
+R/worksheets.R      Multiple worksheets, undo/redo, append and join
+R/templates.R       DMAIC template examples, value stream metrics and diagrams
+R/mod_templates.R   DMAIC screens and a reusable editable table
 R/mod_simulation.R  Screens for the above
 R/sampling.R        Acceptance sampling plans and OC/AOQ curves
 R/agreement.R       Attribute agreement, Fleiss' kappa, Kendall's W

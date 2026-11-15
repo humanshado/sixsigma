@@ -1,15 +1,17 @@
 # Data worksheet: choose a sample dataset, upload a file, paste data or use a
 # design created in the DOE menu. Cells can be edited and columns added.
-# Returns a reactive holding the active data frame.
+# Several worksheets can be open. Returns list(data = reactive active data frame,
+# get/set for project files).
 
 dataUI <- function(id) {
   ns <- shiny::NS(id)
   analysis_layout(
     "Worksheet",
     shiny::tagList(
-      shiny::radioButtons(ns("source"), "Data source",
-                          c("Sample dataset" = "sample", "Upload file" = "upload", "Paste data" = "paste",
-                            "Created worksheet (DOE, gage study)" = "design")),
+      shiny::radioButtons(ns("source"), "Open data from",
+                          c("Sample dataset" = "sample", "Upload file" = "upload", "Paste data" = "paste")),
+      shiny::helpText("New data replaces the current worksheet only if it has not been changed; otherwise it ",
+                      "opens in a new worksheet. Designs and study worksheets from other menus always open in a new one."),
       shiny::conditionalPanel(
         "input.source == 'sample'", ns = ns,
         shiny::selectInput(ns("sample"), "Dataset", choices = sample_datasets(), selected = "ss.data.ca"),
@@ -29,11 +31,6 @@ dataUI <- function(id) {
                              rows = 10, placeholder = "diameter\n10.4\n10.26\n9.95"),
         shiny::actionButton(ns("use_paste"), "Use pasted data", class = "btn-primary")
       ),
-      shiny::conditionalPanel(
-        "input.source == 'design'", ns = ns,
-        shiny::helpText("Designs made in DOE > Create factorial design appear here. Type the measured ",
-                        "results into the response column, then use DOE > Analyze factorial design.")
-      ),
       shiny::hr(),
       shiny::tags$b("Edit the worksheet"),
       shiny::helpText("Double-click a cell to edit it. Leave a cell empty for a missing value."),
@@ -45,19 +42,28 @@ dataUI <- function(id) {
     ),
     shiny::tagList(
       bslib::card(
-        bslib::card_header(shiny::textOutput(ns("title"), inline = TRUE)),
+        bslib::card_header(shiny::div(class = "d-flex flex-wrap gap-2 align-items-center",
+          shiny::tags$span(shiny::icon("table"), "Worksheet"),
+          shiny::div(style = "min-width: 260px; margin-bottom: -1rem;", shiny::selectInput(ns("ws"), NULL, NULL)),
+          shiny::actionButton(ns("ws_new"), "New", icon = shiny::icon("file"), class = "btn-sm"),
+          shiny::actionButton(ns("ws_dup"), "Duplicate", icon = shiny::icon("copy"), class = "btn-sm"),
+          shiny::actionButton(ns("ws_rename"), "Rename", icon = shiny::icon("pen"), class = "btn-sm"),
+          shiny::actionButton(ns("ws_close"), "Close", icon = shiny::icon("xmark"), class = "btn-sm"),
+          shiny::div(class = "ms-auto",
+            shiny::actionButton(ns("undo"), "Undo", icon = shiny::icon("rotate-left"), class = "btn-sm"),
+            shiny::actionButton(ns("redo"), "Redo", icon = shiny::icon("rotate-right"), class = "btn-sm")))),
+        shiny::tags$div(class = "fw-semibold", shiny::textOutput(ns("title"), inline = TRUE)),
         DT::DTOutput(ns("table"))
       ),
       bslib::card(
-        bslib::card_header(shiny::div(class = "d-flex justify-content-between align-items-center",
-          "Transform data",
-          shiny::actionButton(ns("undo"), "Undo", icon = shiny::icon("rotate-left"), class = "btn-sm"))),
+        bslib::card_header("Transform data"),
         shiny::fluidRow(
           shiny::column(4, shiny::selectInput(ns("op"), NULL, c(
             "Filter rows" = "subset", "Sort rows" = "sort", "Calculated column (formula)" = "calc",
             "Stack columns (wide to long)" = "stack", "Unstack a column by group (long to wide)" = "unstack",
             "Recode values" = "recode", "Change column type" = "convert", "Rename a column" = "rename",
-            "Delete columns" = "delete", "Remove rows with missing values" = "dropna"))),
+            "Delete columns" = "delete", "Remove rows with missing values" = "dropna",
+            "Append rows from another worksheet" = "append", "Join columns from another worksheet" = "join"))),
           shiny::column(8, shiny::uiOutput(ns("op_ui")))),
         shiny::actionButton(ns("apply"), "Apply", class = "btn-primary", icon = shiny::icon("check")),
         shiny::textOutput(ns("history"), inline = TRUE)
@@ -98,10 +104,6 @@ dataServer <- function(id, injected = NULL) {
       })
       pasted(df)
     })
-    if (!is.null(injected)) {
-      shiny::observeEvent(injected(), shiny::updateRadioButtons(session, "source", selected = "design"))
-    }
-
     loaded <- shiny::reactive({
       switch(input$source,
         sample = {
@@ -117,34 +119,65 @@ dataServer <- function(id, injected = NULL) {
         paste = {
           shiny::req(pasted())
           list(name = "Pasted data", df = pasted())
-        },
-        design = {
-          d <- if (is.null(injected)) NULL else injected()
-          shiny::validate(shiny::need(!is.null(d), "No design yet. Create one in DOE > Create factorial design."))
-          d
-        }
-      )
+        })
     })
 
-    # The worksheet being edited. `version` changes only when the table must be
-    # redrawn (new data or a new column); cell edits update it in place.
-    current <- shiny::reactiveVal(NULL)
-    history <- shiny::reactiveVal(list())
-    # Replace the worksheet, keeping the previous version for Undo.
-    change <- function(df_new, redraw = TRUE) {
-      prev <- shiny::isolate(current())
-      if (!is.null(prev)) history(utils::head(c(list(prev), shiny::isolate(history())), 25))
-      current(df_new)
-      if (redraw) version(shiny::isolate(version()) + 1)
-    }
-    sheet_name <- shiny::reactiveVal("")
+    # All open worksheets (see R/worksheets.R). `version` changes only when the
+    # table must be redrawn; cell edits update the data in place.
+    store <- shiny::reactiveVal(ws_store())
     version <- shiny::reactiveVal(0)
-    shiny::observeEvent(loaded(), {
-      history(list())
-      current(loaded()$df)
-      sheet_name(loaded()$name)
-      version(version() + 1)
+    current <- shiny::reactive({ a <- ws_active(store()); if (is.null(a)) NULL else a$df })
+    sheet_name <- shiny::reactive(ws_active(store())$name %||% "")
+    redraw <- function() version(shiny::isolate(version()) + 1)
+    update_store <- function(f, ..., redraw_table = TRUE) {
+      st <- tryCatch(f(shiny::isolate(store()), ...), error = function(e) { shiny::showNotification(conditionMessage(e), type = "warning"); NULL })
+      if (is.null(st)) return(invisible(FALSE))
+      store(st); if (redraw_table) redraw()
+      invisible(TRUE)
+    }
+    change <- function(df_new, redraw = TRUE) update_store(ws_change, df_new, redraw_table = redraw)
+    shiny::observeEvent(loaded(), update_store(ws_load, loaded()$df, loaded()$name))
+    if (!is.null(injected)) {
+      shiny::observeEvent(injected(), {
+        d <- injected()
+        if (update_store(ws_add, d$df, d$name %||% "Created worksheet"))
+          shiny::showNotification(sprintf("Opened in a new worksheet: %s.", ws_active(store())$name), type = "message")
+      })
+    }
+    # Worksheet bar
+    shiny::observe({
+      st <- store()
+      shiny::updateSelectInput(session, "ws", choices = ws_choices(st), selected = st$active)
     })
+    shiny::observeEvent(input$ws, {
+      if (!identical(input$ws, store()$active) && input$ws %in% names(store()$sheets)) update_store(ws_select, input$ws)
+    })
+    shiny::observeEvent(input$ws_new, shiny::showModal(shiny::modalDialog(
+      title = "New worksheet",
+      shiny::textInput(session$ns("new_name"), "Name", "Worksheet"),
+      shiny::numericInput(session$ns("new_rows"), "Rows", 20, min = 1, max = 100000),
+      shiny::numericInput(session$ns("new_cols"), "Numeric columns (C1, C2, ...)", 3, min = 1, max = 100),
+      footer = shiny::tagList(shiny::modalButton("Cancel"), shiny::actionButton(session$ns("new_ok"), "Create", class = "btn-primary")))))
+    shiny::observeEvent(input$new_ok, {
+      r <- input$new_rows; k <- input$new_cols
+      if (!isTRUE(r >= 1 && r <= 1e5 && k >= 1 && k <= 100)) return(shiny::showNotification("Use 1 to 100,000 rows and 1 to 100 columns.", type = "warning"))
+      df <- as.data.frame(stats::setNames(replicate(k, rep(NA_real_, r), simplify = FALSE), paste0("C", seq_len(k))))
+      if (update_store(ws_add, df, input$new_name)) shiny::removeModal()
+    })
+    shiny::observeEvent(input$ws_dup, update_store(ws_duplicate))
+    shiny::observeEvent(input$ws_rename, shiny::showModal(shiny::modalDialog(
+      title = "Rename worksheet", shiny::textInput(session$ns("rename_to"), "New name", sheet_name()),
+      footer = shiny::tagList(shiny::modalButton("Cancel"), shiny::actionButton(session$ns("rename_ok"), "Rename", class = "btn-primary")))))
+    shiny::observeEvent(input$rename_ok, if (update_store(ws_rename, input$rename_to, redraw_table = FALSE)) shiny::removeModal())
+    shiny::observeEvent(input$ws_close, {
+      a <- ws_active(store())
+      if (length(store()$sheets) > 1 && !isTRUE(a$pristine) && length(a$undo))
+        shiny::showModal(shiny::modalDialog(title = "Close worksheet",
+          sprintf("Close '%s'? Its changes will be lost unless you exported it or saved the project.", a$name),
+          footer = shiny::tagList(shiny::modalButton("Cancel"), shiny::actionButton(session$ns("close_ok"), "Close it", class = "btn-danger"))))
+      else update_store(ws_close)
+    })
+    shiny::observeEvent(input$close_ok, { update_store(ws_close); shiny::removeModal() })
 
     proxy <- DT::dataTableProxy("table")
     output$table <- DT::renderDT({
@@ -221,7 +254,23 @@ dataServer <- function(id, injected = NULL) {
                                   shiny::column(6, shiny::selectInput(ns("conv_type"), "New type", c("Numeric" = "numeric", "Text" = "text", "Category" = "category")))),
         rename = shiny::fluidRow(shiny::column(6, col("ren_col", "Column")), shiny::column(6, shiny::textInput(ns("ren_new"), "New name", ""))),
         delete = col("del_cols", "Columns to delete", TRUE),
-        dropna = col("na_cols", "Check these columns for missing values", TRUE, sel = nm))
+        dropna = col("na_cols", "Check these columns for missing values", TRUE, sel = nm),
+        append = shiny::selectInput(ns("other_ws"), "Worksheet to append (columns are matched by name)", other_sheets()),
+        join = shiny::tagList(
+          shiny::fluidRow(shiny::column(6, shiny::selectInput(ns("other_ws"), "Other worksheet", other_sheets())),
+                          shiny::column(6, shiny::selectInput(ns("join_type"), "Keep", c("All rows of this worksheet" = "left",
+                                                                                          "Only rows found in both" = "inner",
+                                                                                          "All rows of both" = "full")))),
+          shiny::fluidRow(shiny::column(6, col("join_key", "Key column here")),
+                          shiny::column(6, shiny::uiOutput(ns("join_key2_ui"))))))
+    })
+    other_sheets <- shiny::reactive({ st <- store(); ch <- ws_choices(st); ch[ch != st$active] })
+    other_df <- function() { id <- input$other_ws; if (is.null(id) || !(id %in% names(store()$sheets))) stop("Choose another worksheet (create or open one first).")
+                             store()$sheets[[id]]$df }
+    output$join_key2_ui <- shiny::renderUI({
+      shiny::req(input$other_ws %in% names(store()$sheets))
+      nm2 <- names(store()$sheets[[input$other_ws]]$df)
+      shiny::selectInput(session$ns("join_key2"), "Key column there", nm2, selected = if (isTRUE(input$join_key %in% nm2)) input$join_key else nm2[1])
     })
     shiny::observeEvent(input$apply, {
       df <- current(); shiny::req(df)
@@ -235,20 +284,22 @@ dataServer <- function(id, injected = NULL) {
         convert = dt_convert(df, input$conv_col, input$conv_type),
         rename = dt_rename(df, input$ren_col, input$ren_new),
         delete = dt_delete(df, input$del_cols),
-        dropna = dt_drop_missing(df, if (length(input$na_cols)) input$na_cols else names(df))),
+        dropna = dt_drop_missing(df, if (length(input$na_cols)) input$na_cols else names(df)),
+        append = dt_append(df, other_df()),
+        join = dt_join(df, other_df(), input$join_key, input$join_key2 %||% input$join_key, input$join_type)),
         error = function(e) { shiny::showNotification(conditionMessage(e), type = "error"); NULL })
       if (is.null(res)) return()
       if (!nrow(res)) return(shiny::showNotification("That would leave no rows; nothing was changed.", type = "warning"))
       change(res)
       shiny::showNotification(sprintf("Done: %d rows x %d columns. Use Undo to reverse.", nrow(res), ncol(res)), type = "message")
     })
-    shiny::observeEvent(input$undo, {
-      h <- history()
-      if (!length(h)) return(shiny::showNotification("Nothing to undo.", type = "warning"))
-      current(h[[1]]); history(h[-1]); version(version() + 1)
-    })
+    shiny::observeEvent(input$undo, update_store(ws_undo))
+    shiny::observeEvent(input$redo, update_store(ws_redo))
     output$history <- shiny::renderText({
-      n <- length(history()); if (n) sprintf("  %d change(s) can be undone.", n) else ""
+      a <- ws_active(store()); if (is.null(a)) return("")
+      paste0(if (length(a$undo)) sprintf("  %d change(s) can be undone", length(a$undo)) else "",
+             if (length(a$redo)) sprintf("%s%d can be redone", if (length(a$undo)) ", " else "  ", length(a$redo)) else "",
+             if (length(a$undo) || length(a$redo)) "." else "")
     })
 
     output$title <- shiny::renderText({
@@ -270,9 +321,8 @@ dataServer <- function(id, injected = NULL) {
       content = function(file) utils::write.csv(current(), file, row.names = FALSE)
     )
 
-    shiny::reactive({
-      shiny::req(current())
-      current()
-    })
+    list(data = shiny::reactive({ shiny::req(current()); current() }),
+         get = function() ws_export(shiny::isolate(store())),
+         set = function(x) { store(ws_import(x)); redraw() })
   })
 }
