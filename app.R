@@ -84,8 +84,7 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Correlation", correlationUI("correlation")),
     bslib::nav_panel("Outlier tests", outlierUI("outliers")),
     bslib::nav_panel("Time series", timeseriesUI("timeseries")),
-    bslib::nav_panel("Sample size and power", powerUI("power")),
-    bslib::nav_panel("Reliability / life data", reliabilityUI("reliability"))
+    bslib::nav_panel("Sample size and power", powerUI("power"))
   ),
   bslib::nav_menu(
     "Models", icon = shiny::icon("chart-line"),
@@ -100,6 +99,10 @@ ui <- bslib::page_navbar(
     "DOE", icon = shiny::icon("flask"),
     bslib::nav_panel("Create factorial / screening design", doeCreateUI("doe_create")),
     bslib::nav_panel("Analyze factorial design", doeAnalyzeUI("doe_analyze")),
+    bslib::nav_panel("Create general full factorial", gffCreateUI("gff_create")),
+    bslib::nav_panel("Create split-plot design", splitplotCreateUI("sp_create")),
+    bslib::nav_panel("Analyze split-plot design", splitplotAnalyzeUI("sp_analyze")),
+    bslib::nav_panel("Create definitive screening / D-optimal", optimalCreateUI("opt_create")),
     bslib::nav_panel("Create response surface design", rsmCreateUI("rsm_create")),
     bslib::nav_panel("Analyze response surface", rsmAnalyzeUI("rsm_analyze")),
     bslib::nav_panel("Response optimizer", optimizerUI("optimizer")),
@@ -122,8 +125,17 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Cause-and-effect diagram", ceUI("ce")),
     bslib::nav_panel("FMEA", fmeaUI("fmea")),
     bslib::nav_panel("Acceptance sampling", samplingUI("sampling")),
+    bslib::nav_panel("Tolerance stack-up", stackupUI("stackup")),
+    bslib::nav_panel("Monte Carlo simulation", montecarloUI("montecarlo")),
     bslib::nav_panel("Loss function", lfaUI("lfa")),
     bslib::nav_panel("Process yield", yieldUI("yield"))
+  ),
+  bslib::nav_menu(
+    "Reliability", icon = shiny::icon("hourglass-half"),
+    bslib::nav_panel("Life data analysis", reliabilityUI("reliability")),
+    bslib::nav_panel("Accelerated life testing", altUI("alt")),
+    bslib::nav_panel("Warranty analysis", warrantyUI("warranty")),
+    bslib::nav_panel("Demonstration test planning", demoUI("demo"))
   ),
   bslib::nav_menu(
     "MSA", icon = shiny::icon("ruler"),
@@ -152,6 +164,9 @@ server <- function(input, output, session) {
   }
   doeCreateServer("doe_create", on_create = send_to_worksheet)
   rsmCreateServer("rsm_create", on_create = send_to_worksheet)
+  gffCreateServer("gff_create", on_create = send_to_worksheet)
+  splitplotCreateServer("sp_create", on_create = send_to_worksheet)
+  optimalCreateServer("opt_create", on_create = send_to_worksheet)
   rsmAnalyzeServer("rsm_analyze", data)
   optimizerServer("optimizer", data)
   mixtureCreateServer("mix_create", on_create = send_to_worksheet)
@@ -175,6 +190,9 @@ server <- function(input, output, session) {
   mvCapServer("mvcap", data)
   gageExpServer("gage_exp", data)
   reliabilityServer("reliability", data)
+  altServer("alt", data)
+  warrantyServer("warranty", data)
+  demoServer("demo")
   samplingServer("sampling", data)
   agreementServer("agreement", data)
   fmea <- fmeaServer("fmea")
@@ -182,6 +200,9 @@ server <- function(input, output, session) {
   gageType1Server("gage_t1", data)
   multivariServer("multivari", data)
   doeAnalyzeServer("doe_analyze", data)
+  splitplotAnalyzeServer("sp_analyze", data)
+  stackupServer("stackup")
+  montecarloServer("montecarlo")
   capabilityServer("capability", data)
   controlServer("control", data)
   multivariateServer("multivariate", data)

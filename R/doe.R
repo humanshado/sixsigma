@@ -79,7 +79,7 @@ doe_coded <- function(k, runs) {
 # Create a design worksheet.
 #   factors  data.frame(name, low, high)
 doe_create <- function(factors, runs, replicates = 1, center = 0, randomize = TRUE, seed = NA,
-                       response = "Response") {
+                       response = "Response", blocks = 1) {
   k <- nrow(factors)
   if (k < 2 || k > DOE_MAX_FACTORS) stop("Choose between 2 and ", DOE_MAX_FACTORS, " factors.")
   nm <- trimws(factors$name)
@@ -92,16 +92,31 @@ doe_create <- function(factors, runs, replicates = 1, center = 0, randomize = TR
   if (center > 0 && !num) stop("Center points need numeric factor levels.")
 
   coded <- doe_coded(k, runs)$matrix
-  rows <- do.call(rbind, rep(list(coded), replicates))
-  ctpt <- rep(1L, nrow(rows))
-  if (center > 0) {
-    rows <- rbind(rows, matrix(0, center, k))
-    ctpt <- c(ctpt, rep(0L, center))
+  if (blocks > 1 && is_pb(k, runs)) stop("Blocking is not offered for Plackett-Burman designs; use replicates as blocks instead.")
+  blk1 <- doe_block_assign(coded, blocks)
+  # Each replicate gets its own set of blocks; center points go into every block.
+  parts <- lapply(seq_len(replicates), function(r) {
+    lapply(seq_len(blocks), function(b) {
+      m <- coded[blk1 == b, , drop = FALSE]
+      list(rows = rbind(m, matrix(0, center, k)), ct = c(rep(1L, nrow(m)), rep(0L, center)),
+           block = rep((r - 1) * blocks + b, nrow(m) + center))
+    })
+  })
+  parts <- unlist(parts, recursive = FALSE)
+  rows <- do.call(rbind, lapply(parts, `[[`, "rows"))
+  ctpt <- unlist(lapply(parts, `[[`, "ct")); blk <- unlist(lapply(parts, `[[`, "block"))
+  if (blocks == 1) {  # keep the original layout: center points after all factorial runs
+    rows <- rbind(do.call(rbind, rep(list(coded), replicates)), matrix(0, center, k))
+    ctpt <- c(rep(1L, nrow(coded) * replicates), rep(0L, center)); blk <- rep(1L, nrow(rows))
   }
   std <- seq_len(nrow(rows))
   if (!is.na(seed)) set.seed(seed)
-  run <- if (randomize) sample(std) else std
+  run <- if (!randomize) std else if (blocks == 1) sample(std) else {
+    o <- unlist(lapply(split(std, blk), function(i) if (length(i) > 1) sample(i) else i)); r <- integer(length(std)); r[o] <- std; r
+  }
   out <- data.frame(StdOrder = std, RunOrder = run, CenterPt = ctpt)
+  if (blocks > 1) out$Blocks <- blk
+  if (blocks > 1) attr(out, "block_generators") <- attr(blk1, "generators")
   for (j in seq_len(k)) {
     lo <- factors$low[j]; hi <- factors$high[j]
     out[[nm[j]]] <- if (num) ifelse(rows[, j] < 0, lo, ifelse(rows[, j] > 0, hi, (lo + hi) / 2))
@@ -169,7 +184,7 @@ lenth_pse <- function(effects) {
   1.5 * stats::median(a[a < 2.5 * s0])
 }
 
-doe_analyze <- function(df, response, factors, order = 2, alpha = 0.05) {
+doe_analyze <- function(df, response, factors, order = 2, alpha = 0.05, blocks = NULL) {
   if (length(factors) < 2) stop("Choose at least two factors.")
   if (response %in% factors) stop("The response cannot also be a factor.")
   y <- df[[response]]
@@ -187,11 +202,16 @@ doe_analyze <- function(df, response, factors, order = 2, alpha = 0.05) {
   order <- max(1, min(order, k))
   form <- paste0("y ~ (", paste(letters_k, collapse = " + "), ")", if (order > 1) paste0("^", order) else "")
   if (any(is_ct)) { d$Ct <- as.numeric(is_ct); form <- paste(form, "+ Ct") }
+  if (!is.null(blocks)) {
+    bl <- factor(df[[blocks]])
+    if (nlevels(bl) > 1) { d$Blk <- bl; form <- paste("y ~ Blk +", sub("^y ~ ", "", form)) }
+  }
   fit <- stats::lm(stats::as.formula(form), data = d)
   cf <- stats::coef(fit)
   aliased <- names(cf)[is.na(cf)]
   if (length(aliased)) {
     keep_terms <- setdiff(names(cf)[!is.na(cf)], "(Intercept)")
+    keep_terms <- unique(sub("^Blk.*$", "Blk", keep_terms))  # block dummies -> the block factor
     fit <- stats::lm(stats::as.formula(paste("y ~", paste(keep_terms, collapse = " + "))), data = d)
     cf <- stats::coef(fit)
   }
@@ -200,6 +220,8 @@ doe_analyze <- function(df, response, factors, order = 2, alpha = 0.05) {
     paste(factors[match(strsplit(t, ":", fixed = TRUE)[[1]], letters_k)], collapse = "*")
   }
   terms <- setdiff(names(cf), "(Intercept)")
+  block_terms <- grep("^Blk", terms, value = TRUE)
+  terms <- setdiff(terms, block_terms)
   fac_terms <- setdiff(terms, "Ct")
   dfe <- stats::df.residual(fit)
   effect <- 2 * cf[fac_terms]

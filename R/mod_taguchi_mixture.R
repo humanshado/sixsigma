@@ -110,7 +110,12 @@ mixtureCreateUI <- function(id) {
     "Create mixture design",
     shiny::tagList(
       shiny::textInput(ns("components"), "Components (comma separated)", "A, B, C"),
-      shiny::selectInput(ns("type"), "Design", c("Simplex centroid" = "centroid", "Simplex lattice" = "lattice")),
+      shiny::selectInput(ns("type"), "Design", c("Simplex centroid" = "centroid", "Simplex lattice" = "lattice",
+                                                "Extreme vertices (component bounds)" = "extreme")),
+      shiny::conditionalPanel("input.type == 'extreme'", ns = ns,
+        shiny::textInput(ns("lower"), "Lower bounds (comma separated, same order)", "0.4, 0.1, 0.1"),
+        shiny::textInput(ns("upper"), "Upper bounds (comma separated)", "0.8, 0.5, 0.3"),
+        shiny::checkboxInput(ns("edges"), "Add edge midpoints", TRUE)),
       shiny::conditionalPanel("input.type == 'lattice'", ns = ns,
         shiny::numericInput(ns("degree"), "Lattice degree (proportions in steps of 1/degree)", 2, min = 1, max = 6)),
       shiny::checkboxInput(ns("axial"), "Add axial check blends (and the overall centroid)", TRUE),
@@ -131,12 +136,19 @@ mixtureCreateUI <- function(id) {
 mixtureCreateServer <- function(id, on_create) {
   shiny::moduleServer(id, function(input, output, session) {
     comps <- shiny::reactive({ v <- trimws(strsplit(input$components, ",", fixed = TRUE)[[1]]); v[nzchar(v)] })
-    design <- shiny::reactive(validate_run(mixture_create(comps(), input$type, input$degree, isTRUE(input$axial), 1,
-                                                          randomize = FALSE)))
+    bounds <- function(s) suppressWarnings(as.numeric(trimws(strsplit(s %||% "", ",", fixed = TRUE)[[1]])))
+    make <- function(reps, randomize, seed = NA, response = "Response") {
+      if (identical(input$type, "extreme")) {
+        lo <- bounds(input$lower); hi <- bounds(input$upper)
+        if (length(lo) != length(comps()) || length(hi) != length(comps()) || anyNA(c(lo, hi)))
+          stop("Enter one lower and one upper bound for each component.")
+        mixture_constrained(comps(), lo, hi, isTRUE(input$edges), isTRUE(input$axial), TRUE, reps, randomize, seed, response)
+      } else mixture_create(comps(), input$type, input$degree, isTRUE(input$axial), reps, randomize, seed, response)
+    }
+    design <- shiny::reactive(validate_run(make(1, FALSE)))
     output$preview <- shiny::renderTable(design()[, comps(), drop = FALSE], digits = 4)
     shiny::observeEvent(input$create, {
-      res <- tryCatch(mixture_create(comps(), input$type, input$degree, isTRUE(input$axial), input$reps,
-                                     input$randomize, num_or_na(input$seed), trimws(input$response)),
+      res <- tryCatch(make(input$reps, input$randomize, num_or_na(input$seed), trimws(input$response)),
                       error = function(e) { shiny::showNotification(conditionMessage(e), type = "error"); NULL })
       if (is.null(res)) return()
       on_create(list(name = sprintf("Mixture design, %d blends", nrow(res)), df = res))

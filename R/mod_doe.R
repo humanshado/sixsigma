@@ -16,7 +16,8 @@ doeCreateUI <- function(id) {
       shiny::helpText("Up to 8 factors for full and fractional factorials; up to 23 with Plackett-Burman screening designs."),
       shiny::selectInput(ns("runs"), "Design", choices = NULL),
       shiny::numericInput(ns("reps"), "Replicates", 1, min = 1, max = 10),
-      shiny::numericInput(ns("center"), "Center points", 0, min = 0, max = 20),
+      shiny::numericInput(ns("center"), "Center points (per block)", 0, min = 0, max = 20),
+      shiny::selectInput(ns("blocks"), "Blocks (per replicate)", c("1 (no blocking)" = 1, "2" = 2, "4" = 4, "8" = 8)),
       shiny::checkboxInput(ns("randomize"), "Randomize run order", TRUE),
       blank_numeric(ns("seed"), "Random seed (optional, for a repeatable order)"),
       shiny::textInput(ns("response"), "Response column name", "Response"),
@@ -121,6 +122,7 @@ doeCreateServer <- function(id, on_create) {
       if (is.null(f)) return(shiny::showNotification("Enter a name and two levels for every factor.", type = "error"))
       d <- tryCatch(
         doe_create(f, runs(), replicates = input$reps, center = input$center, randomize = input$randomize,
+                   blocks = as.integer(input$blocks %||% 1),
                    seed = num_or_na(input$seed), response = input$response),
         error = function(e) { shiny::showNotification(conditionMessage(e), type = "error"); NULL })
       if (is.null(d)) return()
@@ -143,6 +145,7 @@ doeAnalyzeUI <- function(id) {
     shiny::tagList(
       column_picker(ns("y"), "Response"),
       column_picker(ns("factors"), "Factors", multiple = TRUE),
+      column_picker(ns("blocks"), "Blocks column (optional)"),
       shiny::helpText("Each factor needs exactly two levels (plus an optional center value). ",
                       "Levels can be numbers, text, or -/+."),
       shiny::selectInput(ns("order"), "Include terms up to", c("Main effects only" = 1, "2-factor interactions" = 2,
@@ -188,7 +191,8 @@ doeAnalyzeServer <- function(id, data) {
       nums <- numeric_cols(df)
       resp_guess <- setdiff(nums, two_level_cols(df))
       resp_guess <- setdiff(resp_guess, c("StdOrder", "RunOrder", "CenterPt", "repl", "ord"))
-      update_pickers(session, df, list(y = list(type = "numeric", default = if (length(resp_guess)) utils::tail(resp_guess, 1) else 1)))
+      update_pickers(session, df, list(y = list(type = "numeric", default = if (length(resp_guess)) utils::tail(resp_guess, 1) else 1),
+                                       blocks = list(type = "any", optional = TRUE, default = if ("Blocks" %in% names(df)) "Blocks" else "")))
       fac <- two_level_cols(df, exclude = shiny::isolate(input$y))
       shiny::updateSelectInput(session, "factors", choices = names(df),
                                selected = keep_selected(session, "factors", names(df), fac))
@@ -200,7 +204,7 @@ doeAnalyzeServer <- function(id, data) {
       f <- intersect(input$factors, names(df))
       a <- input$alpha
       shiny::validate(shiny::need(isTRUE(a > 0 && a < 1), "The significance level must be between 0 and 1."))
-      validate_run(doe_analyze(df, input$y, f, as.integer(input$order), a))
+      validate_run(doe_analyze(df, input$y, setdiff(f, empty_to_null(input$blocks)), as.integer(input$order), a, empty_to_null(input$blocks)))
     })
 
     output$method <- shiny::renderUI({

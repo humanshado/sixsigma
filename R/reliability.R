@@ -46,6 +46,7 @@ rel_fit <- function(d, dist = "weibull") {
   fixed_sigma <- dist == "exponential"
   nll <- function(par) {
     mu <- par[1]; ls <- if (fixed_sigma) 0 else par[2]; s <- exp(ls)
+    if (ls < -12 || ls > 8 || abs(mu) > 1e6) return(1e300)  # keep the search away from degenerate fits
     z <- (y - mu) / s
     ll_f <- log(pmax(std$d(z), 1e-300)) - ls - (if (lg) y else 0)
     ll_c <- std$logS(z)
@@ -54,7 +55,21 @@ rel_fit <- function(d, dist = "weibull") {
   yf <- y[d$f]
   start <- c(mean(yf) + if (any(!d$f)) 0.5 * stats::sd(y) else 0, log(max(stats::sd(y), 1e-6)))
   if (fixed_sigma) start <- start[1]
+  # Heavily censored data (e.g. warranty returns) need a start near the
+  # probability-plot line: a least-squares fit to Kaplan-Meier estimates.
+  km_start <- tryCatch({
+    tt <- sort(unique(y[d$f])); atrisk <- vapply(tt, function(v) sum(d$w[y >= v]), 0)
+    dead <- vapply(tt, function(v) sum(d$w[y == v & d$f]), 0)
+    Fk <- 1 - cumprod(1 - dead / atrisk); ok <- Fk > 0 & Fk < 1
+    if (sum(ok) >= 2) { cf <- stats::coef(stats::lm(tt[ok] ~ std$q(Fk[ok]))); unname(c(cf[1], log(max(cf[2], 1e-3)))) } else NULL
+  }, error = function(e) NULL)
   o <- stats::optim(start, nll, method = "BFGS", hessian = TRUE, control = list(maxit = 1000, reltol = 1e-12))
+  if (!is.null(km_start) && all(is.finite(km_start))) {
+    ks <- if (fixed_sigma) km_start[1] else km_start
+    o2 <- tryCatch(stats::optim(ks, nll, method = "BFGS", hessian = TRUE, control = list(maxit = 1000, reltol = 1e-12)),
+                   error = function(e) NULL)
+    if (!is.null(o2) && o2$convergence == 0 && is.finite(o2$value) && (o$convergence != 0 || !is.finite(o$value) || o2$value < o$value)) o <- o2
+  }
   if (o$convergence != 0 || !is.finite(o$value)) {
     # Heavily censored data can defeat BFGS from the default start: try
     # Nelder-Mead first (and a later start), then polish with BFGS.

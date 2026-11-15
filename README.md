@@ -23,13 +23,16 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **Models → Stepwise / Best subsets** | p-value based stepwise (forward, backward, both, with forced terms) and best subsets with R-sq, adjusted R-sq, Mallows' Cp and S |
 | **Models → Binary / Ordinal logistic** | Odds ratios, likelihood-ratio tests, Hosmer-Lemeshow, ROC area and classification table; proportional-odds ordinal regression with predicted probability plots |
 | **Models → General ANOVA** | Crossed and nested, fixed and random factors with covariates; adjusted (Type III) sums of squares; expected mean squares and correct F-test denominators (Satterthwaite when needed); variance components (ANOVA or REML); Tukey comparisons; main effects, interaction and residual plots |
-| **Stat → Sample size and power** | 1-sample, 2-sample and paired t, 1 and 2 proportions, one-way ANOVA and 2-level factorial designs: solve for sample size, power or the detectable difference, with power curves |
-| **Stat → Reliability / life data** | Weibull, lognormal, exponential, log-logistic and normal fits by maximum likelihood with right-censored data and frequencies; distribution comparison, parameters, MTTF and B-lives with confidence intervals, reliability at chosen times, probability plot with confidence band, reliability/hazard/density curves and Kaplan-Meier estimates |
-| **DOE → Create factorial / screening design** | Two-level full and fractional factorial designs for 2 to 8 factors using standard minimum-aberration generators, and Plackett-Burman screening designs (12, 20, 24 runs) for up to 23 factors; replicates, center points, randomized run order; resolution, defining relation and alias structure. The design opens in the worksheet, ready for you to type in results |
-| **DOE → Analyze factorial design** | Effects and coefficients, Pareto and normal plots of standardized effects, main effects and interaction plots, curvature test from center points, residual plots. Unreplicated designs use Lenth's method; aliased terms are detected and reported |
+| **Stat → Sample size and power** | 1-sample, 2-sample and paired t, 1 and 2 proportions, one-way ANOVA, 2-level factorial, Plackett-Burman and general full factorial designs: solve for sample size, power or the detectable difference, with power curves |
+| **Reliability → Life data analysis** | Weibull, lognormal, exponential, log-logistic and normal fits by maximum likelihood with right-censored data and frequencies; distribution comparison, parameters, MTTF and B-lives with confidence intervals, reliability at chosen times, probability plot with confidence band, reliability/hazard/density curves and Kaplan-Meier estimates |
+| **DOE → Create factorial / screening design** | Two-level full and fractional factorial designs for 2 to 8 factors using standard minimum-aberration generators, and Plackett-Burman screening designs (12, 20, 24 runs) for up to 23 factors; replicates, center points, randomized run order; resolution, defining relation and alias structure. Optional blocking (2, 4 or 8 blocks per replicate, chosen so no main effect is confounded with blocks). The design opens in the worksheet, ready for you to type in results |
+| **DOE → General full factorial** | Any number of levels per factor (numeric or text), replicates, optional blocking by replicate; analyze with General ANOVA |
+| **DOE → Split-plot designs** | Hard-to-change factors set once per whole plot, easy-to-change factors randomized within; REML analysis with separate whole-plot and subplot error and variance components |
+| **DOE → Definitive screening / D-optimal** | Definitive screening designs from conference matrices (main effects orthogonal to all quadratic and two-factor interaction terms, 2m+1 runs); D-optimal designs for linear, interaction or quadratic models by Fedorov exchange, with linear constraints on the factor settings and D-efficiency |
+| **DOE → Analyze factorial design** | Effects and coefficients (adjusted for blocks), Pareto and normal plots of standardized effects, main effects and interaction plots, curvature test from center points, residual plots. Unreplicated designs use Lenth's method; aliased terms are detected and reported |
 | **DOE → Response surface designs** | Central composite (rotatable or face-centred) and Box-Behnken designs; analysis with linear, interaction or full quadratic models, lack-of-fit test, stationary point and canonical analysis, contour and 3-D surface plots, and the path of steepest ascent/descent |
 | **DOE → Response optimizer** | Derringer-Suich desirability for one or several responses (maximize, minimize or target, with weights and importance), optimal settings, predicted responses and an optimization plot |
-| **DOE → Mixture designs** | Simplex lattice and simplex centroid designs with optional axial check blends; Scheffé linear, quadratic and special cubic models; ternary contour plot and Cox trace plot |
+| **DOE → Mixture designs** | Simplex lattice and simplex centroid designs with optional axial check blends; extreme-vertices designs for components with lower and upper bounds (vertices, edge midpoints, axial blends and centroid); Scheffé linear, quadratic and special cubic models; ternary contour plot and Cox trace plot |
 | **DOE → Taguchi designs** | Orthogonal arrays L4, L8, L9, L12, L16, L18, L25, L27 and L32; S/N ratios (larger/smaller/nominal is best), response tables with delta and rank, main effects plots for S/N and means, and the predicted optimum |
 | **Quality Tools → Capability analysis** | Cp, Cpk (within-subgroup sigma from moving ranges or pooled subgroups) and Pp, Ppk (overall), Cpm (Boyles interval) and Cpmk, all with confidence intervals; nonparametric CNp, CNpk, CNpm, CNpmk; Vännman capability plot; expected and observed PPM; the SixSigma capability report |
 | **Quality Tools → Non-normal capability** | Fits normal, lognormal, Weibull, gamma, exponential, logistic and 3-parameter (threshold) lognormal, Weibull and gamma distributions or a Box-Cox transformation; ranks them by AIC and Anderson-Darling statistic, with simulated (parametric bootstrap) goodness-of-fit p-values; percentile-based Pp/Ppk and PPM with histogram and probability plots |
@@ -47,6 +50,11 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **Quality Tools → Loss function** | Taguchi loss function (nominal-, smaller- or larger-is-better) |
 | **Quality Tools → Cause-and-effect diagram** | Ishikawa (fishbone) diagram from a simple text list |
 | **Quality Tools → Pareto chart** | From typed counts, a category + count column, or one row per defect; cumulative percentage line, "vital few" highlighting and an optional "Other" group |
+| **Quality Tools → Tolerance stack-up** | Linear stack of dimensions with worst case, RSS and Monte Carlo limits, PPM against assembly limits, normal or uniform contributors, and each dimension's contribution to variation |
+| **Quality Tools → Monte Carlo simulation** | Any transfer function Y = f(X) of inputs drawn from normal, uniform, triangular, lognormal, Weibull, exponential or constant distributions; output distribution, percentiles, PPM and Ppk against spec limits, and a sensitivity ranking of inputs |
+| **Reliability → Accelerated life testing** | Weibull, lognormal, exponential or log-logistic life with Arrhenius, inverse power, linear or exponential life-stress relationships and right-censoring; parameters (activation energy for Arrhenius), acceleration factors, B-lives and reliability at use conditions with confidence intervals, life-stress plot |
+| **Reliability → Warranty analysis** | Nevada-chart shipments and returns converted to censored life data, fitted life distribution, and forecasts of future returns with an upper bound, optionally limited to the warranty period |
+| **Reliability → Demonstration test planning** | Zero- and k-failure (binomial) tests for a reliability goal, trading units against test time with an assumed Weibull shape (Weibayes); exponential MTBF tests by total test time; operating characteristic curves |
 | **Quality Tools → Process yield** | Yield, first-time yield, rolled throughput yield, DPMO and sigma level |
 | **Quality Tools → FMEA** | Editable FMEA worksheet (severity, occurrence, detection, actions and revised ratings), RPN and criticality, prioritized list, RPN Pareto chart and risk matrix, CSV import/export |
 | **Quality Tools → Acceptance sampling** | Design single sampling plans from AQL/LTPD and risks; evaluate single and double plans (binomial, hypergeometric, Poisson) with OC, AOQ/AOQL, ATI and ASN curves; variables (k-method) plans with a lot accept/reject decision |
@@ -67,8 +75,10 @@ Every chart can be downloaded as a PNG image.
 | ![Response surface](docs/screenshots/rsm.png) | ![Response optimizer](docs/screenshots/optimizer.png) |
 | **Capability sixpack** | **General ANOVA** |
 | ![Capability sixpack](docs/screenshots/sixpack.png) | ![General ANOVA](docs/screenshots/anova.png) |
-| **Reliability / life data** | **Pareto chart** |
+| **Reliability → Life data analysis** | **Pareto chart** |
 | ![Reliability](docs/screenshots/reliability.png) | ![Pareto chart](docs/screenshots/pareto.png) |
+| **Accelerated life testing** | **Tolerance stack-up** |
+| ![Accelerated life testing](docs/screenshots/accelerated-life.png) | ![Tolerance stack-up](docs/screenshots/stackup.png) |
 
 ## Running it
 
@@ -126,6 +136,13 @@ R/mod_taguchi_mixture.R Taguchi and mixture screens
 R/msa_extra.R       Type 1 gage study, linearity and bias, R&R worksheet, multi-vari
 R/mod_msa_extra.R   Screens for the above
 R/reliability.R     Life data fits with censoring, B-lives, Kaplan-Meier, plots
+R/reliability_more.R Accelerated life models, warranty forecasts, demonstration tests
+R/mod_reliability_more.R Screens for the above
+R/designs_more.R    Blocking, general full factorial, split-plot, definitive screening,
+                    D-optimal and extreme-vertices mixture designs
+R/mod_designs_more.R Screens for the new designs
+R/simulation.R      Tolerance stack-up and Monte Carlo simulation
+R/mod_simulation.R  Screens for the above
 R/sampling.R        Acceptance sampling plans and OC/AOQ curves
 R/agreement.R       Attribute agreement, Fleiss' kappa, Kendall's W
 R/power.R           Sample size and power
@@ -215,6 +232,25 @@ and `MASS::polr`; stepwise and best subsets reproduce the standard `mtcars`
 results; one-sided tolerance factors match published tables and two-sided
 exact factors are confirmed by simulation; Grubbs and generalized ESD
 reproduce the NIST e-Handbook examples.
+
+### Batch 3 checks
+
+Blocking a 2^4 design into two blocks confounds ABCD, as in Montgomery's
+Example 7.2, and the blocked analysis returns the same effects; four and eight
+blocks never confound main effects. Conference matrices (orders 4 to 30, Paley
+construction, including GF(9) for order 10) satisfy C'C = (n-1)I, and
+definitive screening designs have main effects exactly orthogonal to all
+quadratic and two-factor interaction columns. The D-optimal search returns the
+3^2 factorial for nine runs of a two-factor quadratic and 100% D-efficiency for
+orthogonal main-effects designs. Extreme vertices reproduce the textbook
+four-vertex region (0.4-0.8, 0.1-0.5, 0.1-0.3). General factorial power equals
+one-way ANOVA power for a single factor. Stack-up worst-case and RSS limits
+follow the textbook formulas and Monte Carlo agrees with RSS for normal parts.
+The accelerated life model reproduces Nelson's Class-B insulation
+lognormal-Arrhenius fit (σ = 0.259 and intercept −6.02 in log10 hours, as in
+Meeker & Escobar). Demonstration plans match the success-run formula
+(22 units for 90% reliability at 90% confidence, 38 with one failure allowed)
+and the chi-square MTBF test times.
 
 ### Features modelled on r6qualitytools
 

@@ -103,6 +103,7 @@ update_pickers <- function(session, df, spec) {
     # A blank optional choice is not kept, so a new dataset's default (e.g. its
     # status column) is picked up.
     sel <- if (!is.null(prev) && length(prev) == 1 && nzchar(prev) && prev != PICKER_NONE && prev %in% choices) prev else s$default
+    if (length(sel) != 1 || is.na(sel)) sel <- NULL
     if (is.numeric(sel)) sel <- choices[min(sel, length(choices))]
     if (identical(sel, "")) sel <- PICKER_NONE
     if (is.null(sel) || !(sel %in% choices)) sel <- if (isTRUE(s$optional)) PICKER_NONE else choices[1]

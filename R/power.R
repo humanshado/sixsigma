@@ -8,7 +8,7 @@
 # error degrees of freedom (as Minitab does).
 
 power_value <- function(test, n, delta, sd = 1, alpha = 0.05, alternative = "two.sided", p0 = 0.5, groups = 3,
-                        k = 3, runs = 8, center = 0, terms = NA) {
+                        k = 3, runs = 8, center = 0, terms = NA, levels = c(3, 2)) {
   sides <- if (alternative == "two.sided") 2 else 1
   switch(test,
     one_t = , paired = stats::power.t.test(n = n, delta = abs(delta), sd = sd, sig.level = alpha, type = "one.sample",
@@ -47,11 +47,24 @@ power_value <- function(test, n, delta, sd = 1, alpha = 0.05, alternative = "two
       if (sides == 2) pw <- pw + stats::pt(-tc, df, ncp)
       pw
     },
+    pb = power_value("factorial", n, delta, sd, alpha, alternative, k = k, runs = runs, center = center, terms = 1 + k),
+    gff = {
+      # General full factorial, full interaction model; power for the main
+      # effect of the factor with the most levels, least favourable case (two
+      # level means differ by delta, the others at the grand mean).
+      levels <- as.integer(levels)
+      if (length(levels) < 1 || any(is.na(levels)) || any(levels < 2)) return(NA_real_)
+      cells <- prod(levels); a <- max(levels)
+      df2 <- cells * (n - 1)
+      if (df2 < 1) return(NA_real_)
+      ncp <- n * cells / a * delta^2 / (2 * sd^2)
+      stats::pf(stats::qf(1 - alpha, a - 1, df2), a - 1, df2, ncp, lower.tail = FALSE)
+    },
     stop("Unknown test."))
 }
 
 power_n_label <- function(test) switch(test, two_t = , two_prop = , anova = "Sample size per group",
-                                        factorial = "Replicates", paired = "Number of pairs", "Sample size")
+                                        factorial = , pb = , gff = "Replicates", paired = "Number of pairs", "Sample size")
 
 # Solve for the missing quantity. Exactly one of n, power, delta is NA.
 power_solve <- function(test, n = NA, power = NA, delta = NA, ...) {
@@ -61,14 +74,14 @@ power_solve <- function(test, n = NA, power = NA, delta = NA, ...) {
       stop(sprintf("For proportions the difference must keep %g + difference between 0 and 1 (e.g. 0.05 or 0.1).", p0))
   }
   pv <- function(nn, dd) power_value(test, nn, dd, ...)
-  min_n <- if (test == "factorial") 1 else 2
+  min_n <- if (test %in% c("factorial", "pb", "gff")) 1 else 2
   if (is.na(n)) {
     if (!isTRUE(power > 0 && power < 1)) stop("Power must be between 0 and 1.")
     if (!isTRUE(delta != 0)) stop("Enter a non-zero difference.")
     for (nn in min_n:100000) {
       p <- pv(nn, delta)
       if (!is.na(p) && p >= power) return(list(n = nn, power = p, delta = delta))
-      if (nn > 2000 && test != "factorial") {
+      if (nn > 2000 && !(test %in% c("factorial", "pb", "gff"))) {
         # Jump with a bisection once the loop gets long.
         lo <- nn; hi <- nn * 2
         while (is.na(pv(hi, delta)) || pv(hi, delta) < power) { hi <- hi * 2; if (hi > 1e8) stop("Sample size exceeds 100,000,000.") }
