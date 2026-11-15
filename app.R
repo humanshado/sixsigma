@@ -44,6 +44,10 @@ and co-authors. No R knowledge is needed to use it.
 | Quality Tools | Gage R&R (crossed or nested) | `ss.rr` |
 | DOE | Plackett-Burman screening designs; response surface designs (central composite, Box-Behnken) with contour/surface plots, stationary point and steepest ascent; desirability response optimizer; mixture designs (simplex lattice/centroid, Scheffe models, ternary plots); Taguchi orthogonal arrays with S/N analysis | built in |
 | Quality Tools | Gage R&R worksheet generator, gage linearity and bias, type 1 gage study (Cg, Cgk), multi-vari chart | built in |
+| Stat | Sample size and power (t-tests, proportions, ANOVA, factorial designs); reliability / life data analysis with censoring (Weibull, lognormal, exponential, log-logistic, normal; B-lives, MTTF, Kaplan-Meier) | built in |
+| Quality Tools | FMEA worksheet (RPN, risk matrix, actions); acceptance sampling plans (single, double, variables; OC, AOQ, ATI) | built in |
+| MSA | Attribute agreement analysis (percent agreement, Fleiss' kappa, Kendall's W) | built in |
+| Project & report | Save and open projects; add any page to a report and download it as HTML or Word | built in |
 | Quality Tools | Taguchi loss function | `ss.lfa` |
 | Quality Tools | Cause-and-effect diagram | `ss.ceDiag` |
 | Quality Tools | Pareto chart with cumulative percentage and 'Other' grouping | ggplot2 |
@@ -65,12 +69,15 @@ ui <- bslib::page_navbar(
   theme = bslib::bs_add_rules(bslib::bs_theme(version = 5, bootswatch = "flatly"),
                              ".shiny-html-output { overflow-x: auto; } pre { white-space: pre-wrap; word-break: break-word; }"),
   fillable = FALSE,
+  header = shiny::tags$head(shiny::tags$script(shiny::HTML(report_capture_js))),
   bslib::nav_panel("Data", icon = shiny::icon("table"), dataUI("data")),
   bslib::nav_menu(
     "Stat", icon = shiny::icon("chart-column"),
     bslib::nav_panel("Basic statistics", basicUI("basic")),
     bslib::nav_panel("Hypothesis tests", hypothesisUI("hypothesis")),
-    bslib::nav_panel("Regression", regressionUI("regression"))
+    bslib::nav_panel("Regression", regressionUI("regression")),
+    bslib::nav_panel("Sample size and power", powerUI("power")),
+    bslib::nav_panel("Reliability / life data", reliabilityUI("reliability"))
   ),
   bslib::nav_menu(
     "DOE", icon = shiny::icon("flask"),
@@ -90,16 +97,25 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Non-normal capability", nonnormalUI("nonnormal")),
     bslib::nav_panel("Control charts", controlUI("control")),
     bslib::nav_panel("Multivariate control charts", multivariateUI("multivariate")),
+    bslib::nav_panel("Multi-vari chart", multivariUI("multivari")),
+    bslib::nav_panel("Pareto chart", paretoUI("pareto")),
+    bslib::nav_panel("Cause-and-effect diagram", ceUI("ce")),
+    bslib::nav_panel("FMEA", fmeaUI("fmea")),
+    bslib::nav_panel("Acceptance sampling", samplingUI("sampling")),
+    bslib::nav_panel("Loss function", lfaUI("lfa")),
+    bslib::nav_panel("Process yield", yieldUI("yield"))
+  ),
+  bslib::nav_menu(
+    "MSA", icon = shiny::icon("ruler"),
     bslib::nav_panel("Gage R&R", gageUI("gage")),
     bslib::nav_panel("Gage linearity and bias", gageLinUI("gage_lin")),
     bslib::nav_panel("Type 1 gage study", gageType1UI("gage_t1")),
-    bslib::nav_panel("Multi-vari chart", multivariUI("multivari")),
-    bslib::nav_panel("Loss function", lfaUI("lfa")),
-    bslib::nav_panel("Cause-and-effect diagram", ceUI("ce")),
-    bslib::nav_panel("Pareto chart", paretoUI("pareto")),
-    bslib::nav_panel("Process yield", yieldUI("yield"))
+    bslib::nav_panel("Attribute agreement analysis", agreementUI("agreement"))
   ),
   bslib::nav_spacer(),
+  bslib::nav_item(shiny::tags$a(id = "add_to_report", href = "#", class = "nav-link", shiny::icon("file-circle-plus"),
+                                " Add page to report")),
+  bslib::nav_panel("Project & report", icon = shiny::icon("folder-open"), projectUI("proj")),
   bslib::nav_panel("About", icon = shiny::icon("circle-info"), about_page())
 )
 
@@ -122,6 +138,12 @@ server <- function(input, output, session) {
   taguchiCreateServer("tag_create", on_create = send_to_worksheet)
   taguchiAnalyzeServer("tag_analyze", data)
   gageLinServer("gage_lin", data)
+  powerServer("power")
+  reliabilityServer("reliability", data)
+  samplingServer("sampling", data)
+  agreementServer("agreement", data)
+  fmea <- fmeaServer("fmea")
+  projectServer("proj", input, session, data, send_to_worksheet, fmea)
   gageType1Server("gage_t1", data)
   multivariServer("multivari", data)
   doeAnalyzeServer("doe_analyze", data)

@@ -10,12 +10,17 @@ sample_datasets <- function() {
   utils::data(list = items, package = "SixSigma", envir = env)
   keep <- vapply(items, function(i) is.data.frame(env[[i]]), logical(1))
   qcr <- sub("\\.csv$", "", list.files(qcr_data_dir(), pattern = "\\.csv$"))
+  ex <- sub("\\.csv$", "", list.files(file.path("data", "examples"), pattern = "\\.csv$"))
   out <- list(`SixSigma package` = unname(items[keep]))
   if (length(qcr)) out$`qcr package` <- stats::setNames(paste0("qcr:", qcr), qcr)
+  if (length(ex)) out$`Examples` <- stats::setNames(paste0("ex:", ex), ex)
   out
 }
 
 load_sample <- function(name) {
+  if (startsWith(name, "ex:")) {
+    return(utils::read.csv(file.path("data", "examples", paste0(sub("^ex:", "", name), ".csv")), stringsAsFactors = TRUE))
+  }
   if (startsWith(name, "qcr:")) {
     f <- file.path(qcr_data_dir(), paste0(sub("^qcr:", "", name), ".csv"))
     return(utils::read.csv(f, stringsAsFactors = TRUE))
@@ -90,17 +95,23 @@ update_pickers <- function(session, df, spec) {
   for (id in names(spec)) {
     s <- spec[[id]]
     choices <- if (identical(s$type, "numeric")) nums else all
-    if (isTRUE(s$optional)) choices <- c("(none)" = "", choices)
+    # The "none" choice needs a non-empty value: selectize drops options whose
+    # value is "", which would leave a stale column selected.
+    if (isTRUE(s$optional)) choices <- c("(none)" = PICKER_NONE, choices)
     # Keep what the user picked if that column still exists (e.g. after a cell edit).
     prev <- shiny::isolate(session$input[[id]])
-    sel <- if (!is.null(prev) && length(prev) == 1 && prev %in% choices) prev else s$default
+    # A blank optional choice is not kept, so a new dataset's default (e.g. its
+    # status column) is picked up.
+    sel <- if (!is.null(prev) && length(prev) == 1 && nzchar(prev) && prev != PICKER_NONE && prev %in% choices) prev else s$default
     if (is.numeric(sel)) sel <- choices[min(sel, length(choices))]
-    if (is.null(sel) || !(sel %in% choices)) sel <- if (isTRUE(s$optional)) "" else choices[1]
+    if (identical(sel, "")) sel <- PICKER_NONE
+    if (is.null(sel) || !(sel %in% choices)) sel <- if (isTRUE(s$optional)) PICKER_NONE else choices[1]
     shiny::updateSelectInput(session, id, choices = choices, selected = sel)
   }
 }
 
-empty_to_null <- function(x) if (is.null(x) || identical(x, "")) NULL else x
+PICKER_NONE <- "(none)"
+empty_to_null <- function(x) if (is.null(x) || identical(x, "") || identical(x, PICKER_NONE)) NULL else x
 
 # Show numeric columns that hold only whole numbers without decimals.
 int_cols <- function(df) {

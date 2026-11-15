@@ -11,10 +11,12 @@ so you can run Six Sigma analyses **without writing any R code**.
 
 | Menu | Analysis |
 |---|---|
-| **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; edit cells, add columns, and export the worksheet |
+| **Data** | Load a sample dataset, upload CSV/Excel, or paste columns from a spreadsheet; edit cells and add columns; filter, sort, stack/unstack, recode, change types, rename/delete columns, drop missing values and add calculated columns (safe formulas), with Undo; export the worksheet |
 | **Stat → Basic statistics** | Descriptive statistics (optionally by group), histogram with normal fit, normal probability plot, Anderson-Darling and Shapiro-Wilk tests, confidence interval for the mean |
 | **Stat → Hypothesis tests** | 1-sample, 2-sample (Welch or pooled) and paired t-tests; one-way ANOVA with Tukey comparisons; equal variances (F/Bartlett and Levene); Mann-Whitney and Kruskal-Wallis; 1-proportion (exact) and 2-proportion tests; chi-square test of association. Each shows the hypotheses, a plain-language conclusion and a chart |
 | **Stat → Regression** | Simple, quadratic/cubic and multiple linear regression (numeric and categorical predictors, optional interactions): equation, coefficients with VIF, R-sq/adjusted/predicted R-sq, ANOVA, fitted line plot with confidence and prediction bands, four-in-one residual plots, unusual observations, and predictions for new settings |
+| **Stat → Sample size and power** | 1-sample, 2-sample and paired t, 1 and 2 proportions, one-way ANOVA and 2-level factorial designs: solve for sample size, power or the detectable difference, with power curves |
+| **Stat → Reliability / life data** | Weibull, lognormal, exponential, log-logistic and normal fits by maximum likelihood with right-censored data and frequencies; distribution comparison, parameters, MTTF and B-lives with confidence intervals, reliability at chosen times, probability plot with confidence band, reliability/hazard/density curves and Kaplan-Meier estimates |
 | **DOE → Create factorial / screening design** | Two-level full and fractional factorial designs for 2 to 8 factors using standard minimum-aberration generators, and Plackett-Burman screening designs (12, 20, 24 runs) for up to 23 factors; replicates, center points, randomized run order; resolution, defining relation and alias structure. The design opens in the worksheet, ready for you to type in results |
 | **DOE → Analyze factorial design** | Effects and coefficients, Pareto and normal plots of standardized effects, main effects and interaction plots, curvature test from center points, residual plots. Unreplicated designs use Lenth's method; aliased terms are detected and reported |
 | **DOE → Response surface designs** | Central composite (rotatable or face-centred) and Box-Behnken designs; analysis with linear, interaction or full quadratic models, lack-of-fit test, stationary point and canonical analysis, contour and 3-D surface plots, and the path of steepest ascent/descent |
@@ -25,14 +27,18 @@ so you can run Six Sigma analyses **without writing any R code**.
 | **Quality Tools → Non-normal capability** | Fits normal, lognormal, Weibull, gamma, exponential, logistic and 3-parameter (threshold) lognormal, Weibull and gamma distributions or a Box-Cox transformation; ranks them by AIC and Anderson-Darling statistic, with simulated (parametric bootstrap) goodness-of-fit p-values; percentile-based Pp/Ppk and PPM with histogram and probability plots |
 | **Quality Tools → Control charts** | I-MR, Xbar-R, Xbar-S, P, NP, C, U, EWMA and CUSUM charts; subgroups by size or column; variable sample sizes; limits from the first N points (Phase I/II) or a known mean and sigma; run-rule signals |
 | **Quality Tools → Multivariate control charts** | Hotelling T² (individuals or subgroups, Phase I/II limits, variable contributions to each signal), MEWMA and MCUSUM; nonparametric data-depth r, Q and S charts (Mahalanobis or spatial depth) that need no normality assumption |
-| **Quality Tools → Gage R&R** | Crossed or nested studies with variance components, % study variation, number of distinct categories, ANOVA and the six-panel report; generates a randomized study worksheet |
-| **Quality Tools → Gage linearity and bias** | AIAG MSA linearity study: bias regressed on reference values, % linearity, average bias and bias per reference with t-tests |
-| **Quality Tools → Type 1 gage study** | Cg and Cgk from repeated measurements of a reference part, bias test and run chart |
+| **MSA → Gage R&R** | Crossed or nested studies with variance components, % study variation, number of distinct categories, ANOVA and the six-panel report; generates a randomized study worksheet |
+| **MSA → Gage linearity and bias** | AIAG MSA linearity study: bias regressed on reference values, % linearity, average bias and bias per reference with t-tests |
+| **MSA → Type 1 gage study** | Cg and Cgk from repeated measurements of a reference part, bias test and run chart |
+| **MSA → Attribute agreement analysis** | Within appraiser, each appraiser vs standard, between appraisers and all vs standard, with exact confidence intervals; Fleiss' kappa by response; disagreement counts; Kendall's coefficient of concordance for ordinal ratings |
 | **Quality Tools → Multi-vari chart** | Response by up to three factors (axis, lines, panels) to find the dominant source of variation |
 | **Quality Tools → Loss function** | Taguchi loss function (nominal-, smaller- or larger-is-better) |
 | **Quality Tools → Cause-and-effect diagram** | Ishikawa (fishbone) diagram from a simple text list |
 | **Quality Tools → Pareto chart** | From typed counts, a category + count column, or one row per defect; cumulative percentage line, "vital few" highlighting and an optional "Other" group |
 | **Quality Tools → Process yield** | Yield, first-time yield, rolled throughput yield, DPMO and sigma level |
+| **Quality Tools → FMEA** | Editable FMEA worksheet (severity, occurrence, detection, actions and revised ratings), RPN and criticality, prioritized list, RPN Pareto chart and risk matrix, CSV import/export |
+| **Quality Tools → Acceptance sampling** | Design single sampling plans from AQL/LTPD and risks; evaluate single and double plans (binomial, hypergeometric, Poisson) with OC, AOQ/AOQL, ATI and ASN curves; variables (k-method) plans with a lot accept/reject decision |
+| **Project & report** | Save the worksheet, FMEA and every screen's settings to a project file and reopen it; add any page to a report with one click and download it as HTML (printable to PDF) or Word |
 
 Every chart can be downloaded as a PNG image.
 
@@ -47,8 +53,8 @@ Every chart can be downloaded as a PNG image.
 | ![Analyze factorial design](docs/screenshots/doe-analyze.png) | ![One-way ANOVA](docs/screenshots/hypothesis-anova.png) |
 | **Response surface** | **Response optimizer** |
 | ![Response surface](docs/screenshots/rsm.png) | ![Response optimizer](docs/screenshots/optimizer.png) |
-| **Pareto chart** | |
-| ![Pareto chart](docs/screenshots/pareto.png) | |
+| **Reliability / life data** | **Pareto chart** |
+| ![Reliability](docs/screenshots/reliability.png) | ![Pareto chart](docs/screenshots/pareto.png) |
 
 ## Running it
 
@@ -90,6 +96,7 @@ R/capability.R      Capability indices, nonparametric indices, Vännman plot
 R/mod_nonnormal.R   Non-normal capability (user interface)
 R/capability_nonnormal.R Distribution fitting, Box-Cox, percentile indices
 data/qcr/           Example datasets from the qcr package (see its README)
+data/examples/      Further example datasets (see its README)
 R/mod_gage.R        Gage R&R
 R/mod_regression.R  Regression (user interface)
 R/regression.R      Regression calculations and plots
@@ -104,6 +111,13 @@ R/taguchi_mixture.R Taguchi S/N analysis, Scheffé mixture models, ternary plots
 R/mod_taguchi_mixture.R Taguchi and mixture screens
 R/msa_extra.R       Type 1 gage study, linearity and bias, R&R worksheet, multi-vari
 R/mod_msa_extra.R   Screens for the above
+R/reliability.R     Life data fits with censoring, B-lives, Kaplan-Meier, plots
+R/sampling.R        Acceptance sampling plans and OC/AOQ curves
+R/agreement.R       Attribute agreement, Fleiss' kappa, Kendall's W
+R/power.R           Sample size and power
+R/data_tools.R      Worksheet transformations and safe formulas
+R/fmea.R            FMEA calculations and charts
+R/mod_project.R     Projects and reports
 R/mod_pareto.R      Pareto chart
 R/mod_tools.R       Loss function, cause-and-effect diagram, yield
 R/utils.R           Shared helpers
@@ -157,6 +171,19 @@ app differs from qcr:
 - Data depth offers Mahalanobis and spatial depth (qcr also has Tukey,
   simplicial and random-projection depth through fda.usc).
 - qcr's control charts for functional data are not included.
+
+### Reliability, sampling, agreement and power
+
+These are implemented from the standard references and checked in the tests:
+the ball-bearing fatigue data (Lieblein & Zelen) reproduce the published
+Weibull fit (shape 2.10, scale 81.9) and lognormal fit; censored fits agree
+with direct likelihood maximisation; sampling OC values match Montgomery
+(n = 89, c = 2 and the double plan n1 = 50, n2 = 100); Fleiss' kappa reproduces
+the standard 10-subject, 14-rater example (0.210); sample sizes match R's
+`power.t.test` and `power.prop.test`. Designed attribute plans are found by an
+exact search, so they can differ slightly from nomogram-based textbook plans
+(which may miss a stated risk). ANSI/ASQ Z1.4 and ISO 2859 table lookups are
+not included because those tables are copyrighted standards.
 
 ### Features modelled on r6qualitytools
 

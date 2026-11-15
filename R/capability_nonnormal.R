@@ -65,12 +65,25 @@ nn_fit <- function(x, dist, round_lambda = FALSE) {
     },
     stop("Unknown distribution."))
   if (!is.null(f$fd)) {
-    args <- list(x = x, densfun = f$fd)
-    if (!is.null(f$start)) args$start <- f$start
-    if (!is.null(f$lower)) args$lower <- f$lower
+    # Fit on data rescaled to a median of about 1 (MASS::fitdistr's optimizer
+    # fails for large-scale data, e.g. Weibull with a scale near 1000), then
+    # convert the parameters back to the original units.
+    sc <- abs(stats::median(x)); if (!is.finite(sc) || sc == 0) sc <- 1
+    xs <- x / sc
+    args <- list(x = xs, densfun = f$fd)
+    ms <- mean(xs); vs <- stats::var(xs)
+    if (f$fd == "weibull") {
+      sh <- 1.2 / stats::sd(log(xs)); args$start <- list(shape = sh, scale = exp(mean(log(xs)) + 0.5772 / sh))
+    }
+    if (f$fd == "gamma") { args$start <- list(shape = ms^2 / vs, rate = ms / vs); args$lower <- c(1e-10, 1e-10) }
     fit <- tryCatch(suppressWarnings(do.call(MASS::fitdistr, args)),
                     error = function(e) stop("Could not fit the ", dist, " distribution: ", conditionMessage(e)))
-    f$par <- fit$estimate
+    e <- fit$estimate
+    f$par <- switch(f$fd,
+      lognormal = c(meanlog = e[["meanlog"]] + log(sc), sdlog = e[["sdlog"]]),
+      weibull = c(shape = e[["shape"]], scale = e[["scale"]] * sc),
+      gamma = c(shape = e[["shape"]], rate = e[["rate"]] / sc),
+      logistic = c(location = e[["location"]] * sc, scale = e[["scale"]] * sc))
   }
   dens <- f$d(x, f$par)
   ll <- sum(log(pmax(dens, 1e-300)))
